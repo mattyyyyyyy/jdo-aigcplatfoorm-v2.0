@@ -882,39 +882,42 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
           <button onClick={() => handleCanvasTransform('zoomIn')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors" title="Zoom In"><ZoomIn size={16}/></button>
           <button onClick={() => handleCanvasTransform('zoomOut')} className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors" title="Zoom Out"><ZoomOut size={16}/></button>
        </div>
-       <div className="bg-black/50 backdrop-blur-md rounded-lg p-1.5 flex flex-col gap-1 border border-white/10 shadow-lg">
-          <button 
-            onMouseDown={(e) => startRotation('left', e)} 
-            onMouseUp={stopRotation} 
-            onMouseLeave={stopRotation}
-            onTouchStart={(e) => startRotation('left', e)}
-            onTouchEnd={stopRotation}
-            onContextMenu={(e) => e.preventDefault()}
-            className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors" 
-            title="Rotate Left"
-          >
-            <RotateCcw size={16}/>
-          </button>
-          <button 
-            onClick={handleResetRotation}
-            className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors" 
-            title="Reset Rotation"
-          >
-            <RefreshCcw size={16}/>
-          </button>
-          <button 
-            onMouseDown={(e) => startRotation('right', e)} 
-            onMouseUp={stopRotation} 
-            onMouseLeave={stopRotation}
-            onTouchStart={(e) => startRotation('right', e)}
-            onTouchEnd={stopRotation}
-            onContextMenu={(e) => e.preventDefault()}
-            className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors" 
-            title="Rotate Right"
-          >
-            <RotateCw size={16}/>
-          </button>
-       </div>
+       {/* Only show rotation controls for 3D avatar module */}
+       {module === '3d-avatar' && (
+           <div className="bg-black/50 backdrop-blur-md rounded-lg p-1.5 flex flex-col gap-1 border border-white/10 shadow-lg">
+              <button 
+                onMouseDown={(e) => startRotation('left', e)} 
+                onMouseUp={stopRotation} 
+                onMouseLeave={stopRotation}
+                onTouchStart={(e) => startRotation('left', e)}
+                onTouchEnd={stopRotation}
+                onContextMenu={(e) => e.preventDefault()}
+                className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors" 
+                title="Rotate Left"
+              >
+                <RotateCcw size={16}/>
+              </button>
+              <button 
+                onClick={handleResetRotation}
+                className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors" 
+                title="Reset Rotation"
+              >
+                <RefreshCcw size={16}/>
+              </button>
+              <button 
+                onMouseDown={(e) => startRotation('right', e)} 
+                onMouseUp={stopRotation} 
+                onMouseLeave={stopRotation}
+                onTouchStart={(e) => startRotation('right', e)}
+                onTouchEnd={stopRotation}
+                onContextMenu={(e) => e.preventDefault()}
+                className="p-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors" 
+                title="Rotate Right"
+              >
+                <RotateCw size={16}/>
+              </button>
+           </div>
+       )}
     </div>
   );
 

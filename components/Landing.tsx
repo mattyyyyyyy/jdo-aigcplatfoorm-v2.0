@@ -98,8 +98,7 @@ interface FeatureCardProps {
   id: AppModule;
   type3D: 'mic' | 'camera' | 'ghost' | 'human';
   title: string;
-  image?: string;
-  video?: string;
+  video: string;
   style: React.CSSProperties;
   isHovered: boolean;
   onMouseEnter: () => void;
@@ -111,7 +110,6 @@ const FeatureCard: React.FC<FeatureCardProps> = memo(({
   id,
   type3D,
   title, 
-  image,
   video,
   style,
   isHovered,
@@ -123,7 +121,7 @@ const FeatureCard: React.FC<FeatureCardProps> = memo(({
 
   // Handle Video Playback on Hover
   useEffect(() => {
-    if (video && videoRef.current) {
+    if (videoRef.current) {
       if (isHovered) {
         // Play when hovered
         const playPromise = videoRef.current.play();
@@ -133,12 +131,12 @@ const FeatureCard: React.FC<FeatureCardProps> = memo(({
           });
         }
       } else {
-        // Pause and reset when not hovered
+        // Pause and reset to start (0) when not hovered
         videoRef.current.pause();
         videoRef.current.currentTime = 0; 
       }
     }
-  }, [isHovered, video]);
+  }, [isHovered]);
 
   return (
     <div 
@@ -159,46 +157,27 @@ const FeatureCard: React.FC<FeatureCardProps> = memo(({
     >
         {/* Content Container */}
         <div className="relative z-10 h-full w-full flex flex-col items-center justify-end pb-8 select-none">
-            {/* Visual Content (3D or Image) */}
-            {image ? (
-              <div className="absolute inset-0">
-                 {/* Static Image */}
-                 <img 
-                    src={image} 
-                    alt={title}
-                    loading="lazy"
-                    className={`w-full h-full object-cover transition-all duration-700 absolute inset-0 z-0 ${isHovered ? 'animate-image-pulse' : ''}`}
+            {/* Visual Content: Video Only */}
+            <div className="absolute inset-0">
+                 <video
+                    ref={videoRef}
+                    src={video}
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                    className="absolute inset-0 w-full h-full object-cover z-0 transition-all duration-700"
                     style={{
-                      opacity: isHovered ? 1 : 0.6,
-                      // When hovered, the CSS animation 'animate-image-pulse' takes over brightness/contrast
-                      // If there is a video, we rely on the video overlay to cover this
-                      filter: isHovered 
-                        ? 'none' 
-                        : 'grayscale(100%) blur(0.5px)'
+                      // Grayscale when not hovered, Color when hovered
+                      filter: isHovered ? 'none' : 'grayscale(100%)',
+                      // Slight opacity dim when not hovered for mood
+                      opacity: isHovered ? 1 : 0.8
                     }}
                  />
-                 
-                 {/* Optional Video Overlay */}
-                 {video && (
-                   <video
-                      ref={videoRef}
-                      src={video}
-                      muted
-                      loop
-                      playsInline
-                      className={`absolute inset-0 w-full h-full object-cover z-10 transition-opacity duration-500 ${isHovered ? 'opacity-100' : 'opacity-0'}`}
-                   />
-                 )}
 
                  {/* Dark gradient at bottom to ensure text readability */}
                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80 z-20" />
-              </div>
-            ) : (
-              // Only render 3D canvas if no image (saves WebGL context)
-              <div className="absolute inset-0 top-0 bottom-16 flex items-center justify-center transition-all duration-500 group-hover:scale-105">
-                <GlassCard3D type={type3D} isHovered={isHovered} />
-              </div>
-            )}
+            </div>
             
             {/* Title */}
             <span className="relative z-30 text-2xl font-bold text-white tracking-[0.2em] uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">
@@ -312,48 +291,42 @@ export default function Landing({ onSelectModule, lang, toggleLanguage, t }: Lan
     };
   };
 
-  // Optimized images: w=600 is sufficient for the cards, saving massive bandwidth/memory compared to original 2000px+
+  // Optimized list: Removed static images, relying on video first frame
   const featureList: { 
     id: AppModule; 
     type3D: 'mic' | 'camera' | 'ghost' | 'human'; 
     title: string; 
-    image?: string;
-    video?: string; // Optional video property
+    video: string; 
   }[] = [
     { 
       id: '2d-audio', 
       type3D: 'mic', 
       title: t.features[0], 
-      image: "https://images.unsplash.com/photo-1765420263504-8b1f2f33a486?q=80&w=600&auto=format&fit=crop",
       video: "https://res.cloudinary.com/djmxoehe9/video/upload/v1765437646/macphone_rbh44x.mp4"
     },
     { 
       id: '2d-chat', 
       type3D: 'camera', 
-      title: t.features[1],
-      image: "https://github.com/mattyyyyyyy/picture2bed/blob/main/jimeng-2025-12-11-8086-%E7%BB%93%E5%90%88%E6%9E%81%E7%AE%80%E4%B8%BB%E4%B9%89%E3%80%81%E5%88%9B%E6%84%8F%E5%90%88%E6%88%90%E7%94%9F%E6%88%90%EF%BC%9A%E5%A2%A8%E9%BB%91%E7%9C%9F%E7%A9%BA%E5%AE%87%E5%AE%99%E4%B8%AD%EF%BC%8C%E7%82%B9%E7%82%B9%E6%98%9F%E5%85%89%EF%BC%8C%E4%B8%AD%E5%BF%83%E5%8C%BA%E5%9F%9F%E6%B5%AE%E7%8E%B0%E7%94%B1%E6%97%A0%E6%95%B0%E9%93%B6%E8%89%B2%E5%85%89%E7%82%B9....png?raw=true",
+      title: t.features[1], 
       video: "https://res.cloudinary.com/djmxoehe9/video/upload/v1765437646/shexiangji_cnko5j.mp4"
     },
     { 
       id: '2d-avatar', 
       type3D: 'ghost', 
-      title: t.features[2],
-      image: "https://github.com/mattyyyyyyy/picture2bed/blob/main/jimeng-2025-12-11-6300-%E7%BB%93%E5%90%88%E6%9E%81%E7%AE%80%E4%B8%BB%E4%B9%89%E3%80%81%E5%88%9B%E6%84%8F%E5%90%88%E6%88%90%E7%94%9F%E6%88%90%EF%BC%9A%E5%A2%A8%E9%BB%91%E7%9C%9F%E7%A9%BA%E5%AE%87%E5%AE%99%E4%B8%AD%EF%BC%8C%E7%82%B9%E7%82%B9%E6%98%9F%E5%85%89%EF%BC%8C%E4%B8%AD%E5%BF%83%E5%8C%BA%E5%9F%9F%E6%B5%AE%E7%8E%B0%E7%94%B1%E6%97%A0%E6%95%B0%E9%93%B6%E8%89%B2%E5%85%89%E7%82%B9....png?raw=true",
+      title: t.features[2], 
       video: "https://res.cloudinary.com/djmxoehe9/video/upload/v1765437646/plant_pwucfi.mp4"
     },
     { 
       id: '3d-avatar', 
       type3D: 'human', 
-      title: t.features[3],
-      image: "https://images.unsplash.com/photo-1765417696283-9e3522262c4a?q=80&w=600&auto=format&fit=crop",
-      // Updated video URL
+      title: t.features[3], 
       video: "https://res.cloudinary.com/djmxoehe9/video/upload/v1765437646/littlegirl_gzwaui.mp4"
     },
   ];
 
-  // Helper to get image for transition
-  const getSelectedImage = (moduleId: string) => {
-    return featureList.find(f => f.id === moduleId)?.image;
+  // Helper to get media for transition
+  const getSelectedMedia = (moduleId: string) => {
+    return featureList.find(f => f.id === moduleId);
   };
 
   // Construct phrases (Subtitle removed from loop)
@@ -362,6 +335,8 @@ export default function Landing({ onSelectModule, lang, toggleLanguage, t }: Lan
     "Make Cars Smarter",
     "重新定义美学创造"
   ], [t.heroTitle]);
+
+  const selectedFeature = getSelectedMedia(animData?.module as string);
 
   return (
     <div className="relative z-10 w-full h-full flex flex-col overflow-y-auto overflow-x-hidden">
@@ -376,10 +351,6 @@ export default function Landing({ onSelectModule, lang, toggleLanguage, t }: Lan
             opacity: 1;
           }
         }
-        @keyframes image-pulse {
-          0%, 100% { filter: brightness(1); }
-          50% { filter: brightness(1.25); }
-        }
         @keyframes border-pulse {
           0%, 100% { 
             box-shadow: 0 0 20px rgba(255, 255, 255, 0.1), inset 0 0 10px rgba(255,255,255,0.05); 
@@ -392,9 +363,6 @@ export default function Landing({ onSelectModule, lang, toggleLanguage, t }: Lan
         }
         .animate-white-glow {
           animation: white-glow-pulse 3s ease-in-out infinite;
-        }
-        .animate-image-pulse {
-          animation: image-pulse 3s ease-in-out infinite;
         }
         .animate-border-pulse {
           animation: border-pulse 2s ease-in-out infinite;
@@ -437,7 +405,6 @@ export default function Landing({ onSelectModule, lang, toggleLanguage, t }: Lan
                 id={feature.id}
                 type3D={feature.type3D}
                 title={feature.title}
-                image={feature.image}
                 video={feature.video}
                 style={getCardStyle(index)}
                 isHovered={hoveredIndex === index}
@@ -450,7 +417,7 @@ export default function Landing({ onSelectModule, lang, toggleLanguage, t }: Lan
       </main>
 
       {/* Transition Overlay */}
-      {animData && (
+      {animData && selectedFeature && (
         <div 
           className="fixed z-50 bg-[#191919]/40 backdrop-blur-xl border border-white/10 overflow-hidden shadow-2xl"
           style={{
@@ -464,33 +431,21 @@ export default function Landing({ onSelectModule, lang, toggleLanguage, t }: Lan
         >
            <div className={`w-full h-full flex flex-col items-center justify-center transition-all duration-300 relative ${isExpanding ? 'opacity-100' : 'opacity-100'}`}>
               
-              {/* Expanding Image */}
-              {getSelectedImage(animData.module) ? (
-                <div className="absolute inset-0 w-full h-full">
-                  <img 
-                    src={getSelectedImage(animData.module)} 
-                    alt="transition"
-                    className="w-full h-full object-cover opacity-100" 
-                  />
-                  {/* Overlay to ensure seamless visual with card state */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80" />
-                  {/* Additional dark overlay for studio background transition */}
-                  <div className={`absolute inset-0 bg-black/60 transition-opacity duration-500 ${isExpanding ? 'opacity-100' : 'opacity-0'}`} />
-                </div>
-              ) : (
-                // Fallback if no image found (though all have images now)
-                 <div className="p-6 rounded-3xl bg-white/10 mb-6 shadow-[0_0_30px_rgba(255,255,255,0.2)]">
-                    {animData.module === '2d-audio' && <Mic size={64} className="text-white" />}
-                    {animData.module === '2d-chat' && <MessageSquare size={64} className="text-white" />}
-                    {animData.module === '2d-avatar' && <Ghost size={64} className="text-white" />}
-                    {animData.module === '3d-avatar' && <Box size={64} className="text-white" />}
-                 </div>
-              )}
-
-              {/* Centered Title during Transition */}
-              <div className={`absolute z-20 flex flex-col items-center justify-center transition-all duration-300 ${isExpanding ? 'opacity-0 scale-110' : 'opacity-100 scale-100'}`}>
-                  <span className="text-3xl font-bold text-white uppercase tracking-wide drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">{animData.title}</span>
+              {/* Expanding Content */}
+              <div className="absolute inset-0 w-full h-full">
+                <video 
+                  src={selectedFeature.video} 
+                  autoPlay
+                  loop
+                  muted
+                  className="w-full h-full object-cover opacity-100" 
+                />
+                {/* Overlay to ensure seamless visual with card state */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80" />
+                {/* Additional dark overlay for studio background transition */}
+                <div className={`absolute inset-0 bg-black/60 transition-opacity duration-500 ${isExpanding ? 'opacity-100' : 'opacity-0'}`} />
               </div>
+
            </div>
         </div>
       )}
