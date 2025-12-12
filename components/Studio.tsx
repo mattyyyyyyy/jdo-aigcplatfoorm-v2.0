@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { 
   Mic, 
   Phone, 
@@ -28,7 +28,6 @@ import {
   Glasses,
   Shirt,
   Video,
-  Music,
   Square,
   Volume2,
   Gauge,
@@ -40,7 +39,34 @@ import {
   Footprints, 
   Scissors,
   Loader2,
-  Square as SquareIcon 
+  Square as SquareIcon,
+  Layers,
+  Palette,
+  Search,
+  GripVertical,
+  Activity,
+  FileBox,
+  ChevronRight,
+  ChevronLeft,
+  PlayCircle,
+  Undo2,
+  Redo2,
+  Wind,
+  PauseCircle,
+  Music,
+  CaseSensitive,
+  Binary,
+  Sigma,
+  Languages,
+  HandMetal,
+  FileCheck,
+  FileText,
+  FileInput,
+  Trash2,
+  Clock,
+  Image as ImageIcon,
+  Monitor,
+  LayoutTemplate
 } from 'lucide-react';
 import { AppModule, Asset, ChatMessage } from '../types';
 
@@ -84,6 +110,31 @@ const VOICE_EMOTIONS = [
   { id: 'angry', name: '生气' },
   { id: 'excited', name: '激动' },
   { id: 'whisper', name: '低语' }
+];
+
+const ACTIONS = [
+  { id: 'wave', name: 'Wave / 挥手', icon: '👋' },
+  { id: 'greet', name: 'Greet / 问候', icon: '🤝' },
+  { id: 'run', name: 'Run / 跑步', icon: '🏃' },
+  { id: 'walk', name: 'Walk / 走路', icon: '🚶' },
+  { id: 'idle', name: 'Idle / 待机', icon: '🧍' },
+  { id: 'dance', name: 'Dance / 跳舞', icon: '💃' },
+  { id: 'jump', name: 'Jump / 跳跃', icon: '⏫' },
+  { id: 'sit', name: 'Sit / 坐下', icon: '🪑' },
+];
+
+const BACKGROUNDS = [
+  { id: 'green_screen', name: '绿幕', type: 'color', value: '#00FF00' },
+  { id: 'newsroom', name: '新闻直播间', type: 'image', value: 'https://images.unsplash.com/photo-1495020686659-d507f9506685?q=80&w=600&auto=format&fit=crop' },
+  { id: 'classroom', name: '教室', type: 'image', value: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?q=80&w=600&auto=format&fit=crop' },
+  { id: 'office', name: '办公室', type: 'image', value: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=600&auto=format&fit=crop' },
+];
+
+const ASPECT_RATIOS = [
+  { id: '2:3', label: '2:3', ratio: 2/3 },
+  { id: '3:2', label: '3:2', ratio: 3/2 },
+  { id: '16:9', label: '16:9', ratio: 16/9 },
+  { id: '9:16', label: '9:16', ratio: 9/16 },
 ];
 
 // --- Custom Rainbow Star Loader ---
@@ -282,7 +333,7 @@ class Particle {
 }
 
 // --- Call Visualizer ---
-const CallVisualizer = ({ active, offsetScale = 1 }: { active: boolean, offsetScale?: number }) => {
+const CallVisualizer = ({ active, className = "", width = 500, height = 200 }: { active: boolean, className?: string, width?: number, height?: number }) => {
    const canvasRef = useRef<HTMLCanvasElement>(null);
    const audioContextRef = useRef<AudioContext | null>(null);
    const analyserRef = useRef<AnalyserNode | null>(null);
@@ -355,9 +406,9 @@ const CallVisualizer = ({ active, offsetScale = 1 }: { active: boolean, offsetSc
          const ctx = canvas.getContext('2d');
          if (!ctx) return;
 
-         const width = canvas.width;
-         const height = canvas.height;
-         const centerY = height * 0.5;
+         const w = canvas.width;
+         const h = canvas.height;
+         const centerY = h * 0.5;
 
          const dataArray = dataArrayRef.current;
          analyserRef.current.getByteFrequencyData(dataArray);
@@ -370,13 +421,13 @@ const CallVisualizer = ({ active, offsetScale = 1 }: { active: boolean, offsetSc
          const energy = Math.max(volume / 255, 0.05); 
          const amplitude = energy * 60 + config.baseAmplitude; 
 
-         ctx.clearRect(0, 0, width, height);
+         ctx.clearRect(0, 0, w, h);
          ctx.globalCompositeOperation = 'lighter'; 
 
          const spawnCount = Math.floor(energy * 3); 
          if (particlesRef.current.length < config.particleCount && Math.random() < 0.5 + energy) {
              for(let k=0; k<spawnCount + 1; k++) {
-                 particlesRef.current.push(new Particle(width, height, centerY));
+                 particlesRef.current.push(new Particle(w, h, centerY));
              }
          }
 
@@ -404,8 +455,8 @@ const CallVisualizer = ({ active, offsetScale = 1 }: { active: boolean, offsetSc
              ctx.strokeStyle = `rgba(${config.color}, ${alpha * 0.6 + 0.1})`;
              ctx.lineWidth = 1.5 + (energy * 2); 
 
-             for (let x = 0; x <= width; x += 5) {
-                 const k = x / width;
+             for (let x = 0; x <= w; x += 5) {
+                 const k = x / w;
                  const attenuation = Math.pow(4 * k * (1 - k), 4); 
                  const frequency = 0.008 + (i * 0.003); 
                  const phase = time * (config.speed + i * 0.02) + (i * 2); 
@@ -440,20 +491,12 @@ const CallVisualizer = ({ active, offsetScale = 1 }: { active: boolean, offsetSc
 
    if (!active) return null;
 
-   // Adjust top position based on scale to ensure it remains below the card
-   // Card base height 500 / 2 = 250.
-   // Scale offset = (scale - 1) * 250
-   const topOffset = Math.max(0, (offsetScale - 1) * 250);
-
    return (
-    <div 
-      className="absolute top-full left-1/2 -translate-x-1/2 w-[500px] h-[200px] flex items-center justify-center pointer-events-none pb-0 z-30 animate-in fade-in zoom-in duration-500"
-      style={{ marginTop: `${topOffset - 30}px`, transition: 'margin-top 0.3s ease' }}
-    >
+    <div className={`pointer-events-none z-30 animate-in fade-in zoom-in duration-500 ${className}`}>
        <canvas 
           ref={canvasRef}
-          width={500} 
-          height={200}
+          width={width} 
+          height={height}
           className="w-full h-full object-contain"
           style={{ 
             filter: 'blur(0.5px) contrast(1.2)', 
@@ -520,13 +563,13 @@ const ASSETS: Asset[] = [
   { id: 'a_m4_1', name: 'Dragon Horns', type: 'accessory', subCategory: 'decoration', previewColor: '#f59e0b', compatibleWith: ['m4'] },
   { id: 'a_m4_2', name: 'Meteor', type: 'accessory', subCategory: 'decoration', previewColor: '#fbbf24', compatibleWith: ['m4'] },
   { id: 'a_p1_1', name: 'Halo', type: 'accessory', subCategory: 'decoration', previewColor: '#fbbf24', compatibleWith: ['p1'] },
-  { id: 't1', name: '新闻主播', type: 'template', previewColor: '#3b82f6', src: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600&auto=format&fit=crop' },
-  { id: 't2', name: '英语老师', type: 'template', previewColor: '#10b981', src: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=600&auto=format&fit=crop' },
-  { id: 't3', name: '虚拟偶像', type: 'template', previewColor: '#ec4899', src: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=600&auto=format&fit=crop' },
-  { id: 't4', name: '专业医生', type: 'template', previewColor: '#0ea5e9', src: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=600&auto=format&fit=crop' },
-  { id: 't5', name: '金牌主持', type: 'template', previewColor: '#f59e0b', src: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=600&auto=format&fit=crop' },
-  { id: 't6', name: '可爱萌娃', type: 'template', previewColor: '#fbbf24', src: 'https://images.unsplash.com/photo-1471286174890-9c112ffca5b4?q=80&w=600&auto=format&fit=crop' },
-  { id: 't7', name: '人气网红', type: 'template', previewColor: '#8b5cf6', src: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=600&auto=format&fit=crop' },
+  { id: 't1', name: '新闻主播', type: 'template', category: 'male', previewColor: '#3b82f6', src: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600&auto=format&fit=crop' },
+  { id: 't2', name: '英语老师', type: 'template', category: 'female', previewColor: '#10b981', src: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=600&auto=format&fit=crop' },
+  { id: 't3', name: '虚拟偶像', type: 'template', category: 'female', previewColor: '#ec4899', src: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=600&auto=format&fit=crop' },
+  { id: 't4', name: '专业医生', type: 'template', category: 'male', previewColor: '#0ea5e9', src: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=600&auto=format&fit=crop' },
+  { id: 't5', name: '金牌主持', type: 'template', category: 'female', previewColor: '#f59e0b', src: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=600&auto=format&fit=crop' },
+  { id: 't6', name: '可爱萌娃', type: 'template', category: 'female', previewColor: '#fbbf24', src: 'https://images.unsplash.com/photo-1471286174890-9c112ffca5b4?q=80&w=600&auto=format&fit=crop' },
+  { id: 't7', name: '人气网红', type: 'template', category: 'female', previewColor: '#8b5cf6', src: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=600&auto=format&fit=crop' },
 ];
 
 const VoiceDropdown = ({ label, value, options, onChange }: { label: string; value: string; options: { id: string; name: string; }[]; onChange: (v: string) => void; }) => (
@@ -572,6 +615,26 @@ const VoiceSlider = ({ label, icon: Icon, value, min, max, onChange }: { label: 
   </div>
 );
 
+const TOOLBAR_ITEMS = [
+  { icon: FileInput, label: '导入文件', id: 'import' },
+  { icon: PlayCircle, label: '占位A', id: 'play' },
+  { icon: Undo2, label: '占位B', id: 'undo' },
+  { icon: Redo2, label: '占位C', id: 'redo' },
+  { icon: Wind, label: '占位D', id: 'breath' },
+  { icon: PauseCircle, label: '占位E', id: 'pause' },
+  { icon: Music, label: '占位F', id: 'sfx' },
+  { icon: CaseSensitive, label: '占位G', id: 'poly' },
+  { icon: Binary, label: '占位H', id: 'num' },
+  { icon: Sigma, label: '占位I', id: 'math' },
+  { icon: Languages, label: '占位J', id: 'lang' },
+  { icon: HandMetal, label: '占位K', id: 'motion' },
+  { icon: FileCheck, label: '占位L', id: 'check' },
+  { icon: Globe, label: '占位M', id: 'trans' },
+  { icon: Mic, label: '占位N', id: 'mic' },
+  { icon: FileText, label: '占位O', id: 'ocr' },
+  { icon: Sparkles, label: '占位P', id: 'ai' },
+];
+
 export default function Studio({ module, onChangeModule, lang, toggleLanguage, onBack, onOpenSettings, savedAssets, onSaveAsset, t }: StudioProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isModuleMenuOpen, setIsModuleMenuOpen] = useState(false);
@@ -588,28 +651,45 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false); 
   const [uploadedHistory, setUploadedHistory] = useState<Asset[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isImportMenuOpen, setIsImportMenuOpen] = useState(false);
+  const [progress, setProgress] = useState(0);
+  
+  // Right Sidebar State
+  const [activeRightTab, setActiveRightTab] = useState<'voice' | 'avatar' | 'accessory' | 'mine' | 'action' | 'background'>('avatar');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Left Sidebar State
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const toggleSidebar = () => setIsSidebarExpanded(prev => !prev);
+  const sidebarWidth = isSidebarExpanded ? 520 : 320;
   
   const generationTimerRef = useRef<number | null>(null);
   const playbackTimerRef = useRef<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const bgmInputRef = useRef<HTMLInputElement>(null);
 
   const [baseModel, setBaseModel] = useState<string>('f1');
   const [accessory, setAccessory] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingModel, setPendingModel] = useState<string | null>(null);
   
+  // Call Warning State
+  const [showCallWarning, setShowCallWarning] = useState(false);
+  
   // Canvas Controls
   const [canvasTransform, setCanvasTransform] = useState({ scale: 1, rotation: 0 });
   const [isRotating, setIsRotating] = useState(false);
   const rotationRafRef = useRef<number | null>(null);
 
-  const [activeTab, setActiveTab] = useState<string>(module === '3d-avatar' ? 'female' : 'public');
+  const [activeAvatarTab, setActiveAvatarTab] = useState<string>('all');
   const [accessoryFilter, setAccessoryFilter] = useState<'all' | 'top' | 'bottom' | 'shoes' | 'decoration'>('all');
+
+  // Background and Aspect Ratio State
+  const [selectedBackground, setSelectedBackground] = useState(BACKGROUNDS[0]);
+  const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0]); // Default 2:3
+  const [showRatioMenu, setShowRatioMenu] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -634,10 +714,10 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
   useEffect(() => {
     if (module === '2d-audio' || module === '2d-chat' || module === '2d-avatar') {
       setBaseModel('t1');
-      setActiveTab('public');
+      setActiveAvatarTab('all'); 
     } else if (module === '3d-avatar') {
       setBaseModel('f1');
-      setActiveTab('female');
+      setActiveAvatarTab('all');
     }
     setAccessory(null);
     setMessages([
@@ -647,41 +727,47 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
     setIsGenerating(false);
     setIsPlaying(false);
     setInputValue('');
-    setIsHistoryExpanded(false);
     setIsVoiceRecording(false);
     setCanvasTransform({ scale: 1, rotation: 0 });
     setIsRotating(false);
     setAccessoryFilter('all');
     setIsModuleMenuOpen(false);
+    setActiveRightTab('avatar');
+    setSearchQuery('');
+    setIsSidebarExpanded(false); 
+    setIsImportMenuOpen(false);
+    setProgress(0);
+    setSelectedBackground(BACKGROUNDS[0]);
+    setAspectRatio(ASPECT_RATIOS[0]);
     
-    if (generationTimerRef.current) clearTimeout(generationTimerRef.current);
+    if (generationTimerRef.current) cancelAnimationFrame(generationTimerRef.current);
     if (playbackTimerRef.current) clearTimeout(playbackTimerRef.current);
   }, [module, lang]);
 
   useEffect(() => {
-    if (isHistoryExpanded) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, isTyping, isHistoryExpanded]);
+    setSearchQuery('');
+  }, [activeRightTab, module]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
 
   useEffect(() => {
     if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-        textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+        //textareaRef.current.style.height = 'auto';
+        //textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
     }
   }, [inputValue]);
 
   useEffect(() => {
     return () => {
         if (rotationRafRef.current) cancelAnimationFrame(rotationRafRef.current);
-        if (generationTimerRef.current) clearTimeout(generationTimerRef.current);
+        if (generationTimerRef.current) cancelAnimationFrame(generationTimerRef.current);
         if (playbackTimerRef.current) clearTimeout(playbackTimerRef.current);
     };
   }, []);
 
   const handleWheel = (e: React.WheelEvent) => {
-    // Only zoom if not in a scrollable area? 
-    // Actually the canvas container is the main area.
     e.stopPropagation();
     setCanvasTransform(prev => ({
         ...prev,
@@ -725,7 +811,17 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
     }
   };
 
+  const checkCallActive = () => {
+    if (isCallActive) {
+      setShowCallWarning(true);
+      return true;
+    }
+    return false;
+  };
+
   const handleAssetClick = (asset: Asset) => {
+    if (checkCallActive()) return;
+
     if (module === '3d-avatar') {
       if (asset.type === 'base') {
         if (accessory && asset.id !== baseModel) {
@@ -749,6 +845,8 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
     if (pendingModel) {
       setBaseModel(pendingModel);
       setAccessory(null);
+      // Auto switch to accessory tab after confirmation
+      setActiveRightTab('accessory');
     }
     setShowConfirmDialog(false);
     setPendingModel(null);
@@ -765,7 +863,6 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
     setMessages(prev => [...prev, newMsg]);
     setInputValue('');
     setIsTyping(true);
-    setIsHistoryExpanded(true);
     setTimeout(() => {
       const responseMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -817,17 +914,17 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
     }
   };
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>, isBGM = false) => {
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (checkCallActive()) {
+        // Reset file input so change event can fire again if needed
+        if(e.target) e.target.value = '';
+        return;
+    }
+
     const file = e.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
       const isVideo = file.type.startsWith('video/');
-      // For BGM, we might just store it but not show as avatar
-      if (isBGM) {
-         // Logic for BGM upload (visual only for now)
-         console.log("BGM Uploaded", file.name);
-         return; 
-      }
       const newAsset: Asset = {
         id: `upload-${Date.now()}`,
         name: file.name,
@@ -839,15 +936,19 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
       };
       setUploadedHistory(prev => [newAsset, ...prev]);
       setBaseModel(newAsset.id);
-      if (module === '2d-audio') setActiveTab('mine');
+      
+      // Auto-switch back to viewing the upload (no tab switch needed as we setBaseModel)
+      // Close the import menu to show the result
+      setIsImportMenuOpen(false);
     }
   };
 
   const handleStop = () => {
-    if (generationTimerRef.current) clearTimeout(generationTimerRef.current);
+    if (generationTimerRef.current) cancelAnimationFrame(generationTimerRef.current);
     if (playbackTimerRef.current) clearTimeout(playbackTimerRef.current);
     setIsGenerating(false);
     setIsPlaying(false);
+    setProgress(0);
   };
 
   const handleGenerate = () => {
@@ -856,6 +957,8 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
         return;
     }
     setIsGenerating(true);
+    setProgress(0);
+    
     if (module === '2d-audio' && inputValue.trim()) {
        setMessages(prev => [...prev, {
          id: Date.now().toString(),
@@ -865,25 +968,80 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
        }]);
        setInputValue('');
     }
-    if (generationTimerRef.current) clearTimeout(generationTimerRef.current);
+    
+    // Clear existing timers
+    if (generationTimerRef.current) cancelAnimationFrame(generationTimerRef.current);
     if (playbackTimerRef.current) clearTimeout(playbackTimerRef.current);
-    generationTimerRef.current = setTimeout(() => {
-      setIsGenerating(false);
-      setIsPlaying(true);
-      playbackTimerRef.current = setTimeout(() => {
-          setIsPlaying(false);
-      }, 5000);
+
+    const duration = 3000;
+    const startTime = Date.now();
+
+    const updateProgress = () => {
+        const elapsed = Date.now() - startTime;
+        const p = Math.min(100, (elapsed / duration) * 100);
+        setProgress(p);
+
+        if (p < 100) {
+            generationTimerRef.current = requestAnimationFrame(updateProgress) as any;
+        } else {
+            setIsGenerating(false);
+            setIsPlaying(true);
+            setProgress(0);
+            playbackTimerRef.current = setTimeout(() => {
+                setIsPlaying(false);
+            }, 5000);
+        }
+    };
+    generationTimerRef.current = requestAnimationFrame(updateProgress) as any;
+  };
+
+  const handleVoicePreview = (e: React.MouseEvent, voiceId: string) => {
+    e.stopPropagation();
+    
+    if (checkCallActive()) return;
+
+    // Select the voice when previewing
+    setVoiceConfig(prev => ({...prev, selectedVoice: voiceId}));
+
+    if (isGenerating || isPlaying) {
+      handleStop();
+      return;
+    }
+    setIsPlaying(true);
+    // Simulate speaking briefly for audition
+    playbackTimerRef.current = setTimeout(() => {
+      setIsPlaying(false);
     }, 3000);
+  };
+
+  const handleVoiceConfigChange = (updater: (prev: any) => any) => {
+      if (checkCallActive()) return;
+      setVoiceConfig(updater);
+  };
+
+  const handleToolbarClick = (id: string) => {
+    if (id === 'import') {
+      if (module === '3d-avatar' || module === '2d-audio') {
+        setIsImportMenuOpen(!isImportMenuOpen);
+      } else {
+        fileInputRef.current?.click();
+      }
+    } else if (id === 'play') {
+      handleGenerate();
+    } else {
+      console.log('Toolbar action:', id);
+    }
   };
 
   const isSpeaking = isPlaying || isCallActive;
   const shouldMoveUp = isCallActive || isGenerating || isPlaying;
   const filteredVoices = useMemo(() => {
       return VOICE_PRESETS.filter(voice => {
-          if (voiceConfig.genderFilter === 'all') return true;
-          return voice.gender === voiceConfig.genderFilter;
+          if (voiceConfig.genderFilter !== 'all' && voice.gender !== voiceConfig.genderFilter) return false;
+          if (searchQuery && !voice.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+          return true;
       });
-  }, [voiceConfig.genderFilter]);
+  }, [voiceConfig.genderFilter, searchQuery]);
 
   // Common Controls Overlay for both 2D and 3D
   const CanvasControls = () => (
@@ -931,57 +1089,136 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
     </div>
   );
 
-  // Dynamic visualizer top offset to prevent blocking
-  // Card base height 500. Center is 250.
-  // Visualizer is at top-full of unscaled container.
-  // If scale increases, bottom of card moves down by (scale - 1) * 250.
+  const AspectRatioMenu = () => (
+    <div className="absolute top-4 left-4 z-50">
+        <div className="relative">
+            <button 
+                onClick={() => setShowRatioMenu(!showRatioMenu)}
+                className="flex items-center gap-2 px-3 py-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg text-xs font-medium text-white hover:bg-white/10 transition-colors"
+            >
+                <Monitor size={14} />
+                尺寸: {aspectRatio.label}
+                <ChevronDown size={12} className={`transition-transform ${showRatioMenu ? 'rotate-180' : ''}`} />
+            </button>
+            {showRatioMenu && (
+                <div className="absolute top-full left-0 mt-2 w-32 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100 flex flex-col p-1">
+                    {ASPECT_RATIOS.map(ratio => (
+                        <button
+                            key={ratio.id}
+                            onClick={() => {
+                                setAspectRatio(ratio);
+                                setShowRatioMenu(false);
+                            }}
+                            className={`flex items-center justify-between px-3 py-2 text-xs text-left rounded-md transition-colors ${aspectRatio.id === ratio.id ? 'bg-white/10 text-white' : 'text-white/60 hover:bg-white/5 hover:text-white'}`}
+                        >
+                            {ratio.label}
+                            {aspectRatio.id === ratio.id && <Check size={12} className="text-green-400" />}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    </div>
+  );
+
   const visualizerOffset = canvasTransform.scale;
-  
-  // Calculate loader position similarly
   const loaderMarginTop = (canvasTransform.scale - 1) * 250 + 240;
 
+  const get3DTabs = () => ['all', 'female', 'male', 'pet'] as const;
+
+  // Helper to get container style based on background
+  const getBackgroundStyle = () => {
+      if (selectedBackground.type === 'color') {
+          return { backgroundColor: selectedBackground.value };
+      } else {
+          return { 
+              backgroundImage: `url(${selectedBackground.value})`, 
+              backgroundSize: 'cover', 
+              backgroundPosition: 'center' 
+          };
+      }
+  };
+
+  // Helper to get container dimensions based on ratio
+  // Base logic: try to fit within 500x500 box roughly
+  const getContainerDimensions = () => {
+      const baseSize = 500; // max dimension
+      let width, height;
+      
+      if (aspectRatio.ratio >= 1) {
+          // Landscape or Square
+          width = baseSize;
+          height = baseSize / aspectRatio.ratio;
+      } else {
+          // Portrait
+          height = baseSize;
+          width = baseSize * aspectRatio.ratio;
+      }
+      return { width, height };
+  };
+
+  const { width: containerWidth, height: containerHeight } = getContainerDimensions();
+
   const render3dCanvas = () => {
-    const model = ASSETS.find(a => a.id === baseModel);
+    // Look up model from all available sources including uploads
+    const allAssets = [...ASSETS, ...uploadedHistory, ...savedAssets];
+    const model = allAssets.find(a => a.id === baseModel);
     const acc = ASSETS.find(a => a.id === accessory);
     
     return (
       <div className="relative w-full h-full flex flex-col items-center justify-center p-8 perspective-[1000px]" onWheel={handleWheel}>
-        <div className={`relative transition-transform duration-500 z-10 ${shouldMoveUp ? '-translate-y-24' : 'translate-y-0'}`}>
-            <div className={`w-[300px] h-[500px] rounded-2xl flex items-center justify-center border-2 border-white overflow-hidden backdrop-blur-md group transform-style-3d ${isSpeaking ? 'scale-105' : ''}`}
+        <AspectRatioMenu />
+        <div className={`relative transition-transform duration-500 z-10 translate-y-0`}>
+            <div className={`rounded-2xl flex items-center justify-center border-2 border-white overflow-hidden backdrop-blur-md group transform-style-3d ${isSpeaking ? 'scale-105' : ''} ${isGenerating ? 'brightness-50 grayscale-[0.5]' : ''} transition-all duration-300`}
                  style={{ 
-                    background: `linear-gradient(to bottom, ${model?.previewColor || '#444'}80, #0f0f0f80)`,
+                    ...getBackgroundStyle(), // Apply selected background
+                    width: containerWidth,
+                    height: containerHeight,
                     boxShadow: isSpeaking ? 'none' : '0 0 25px rgba(255,255,255,0.2)',
                     animation: isSpeaking ? 'talking-glow 0.8s infinite' : 'none',
                     transition: isRotating ? 'none' : 'all 0.3s ease',
                     transform: `scale(${canvasTransform.scale}) rotateY(${canvasTransform.rotation}deg)`
                  }}
             >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                <div className="relative z-20 flex flex-col items-center gap-8 transform-style-3d">
-                    <div className="relative transform-style-3d animate-bounce" style={{ animationDuration: '4s' }}>
-                         {acc && (
-                            <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-30 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)] animate-pulse">
-                                 {acc.name.includes('Mask') ? <Ghost size={24} style={{ color: acc.previewColor }} /> :
-                                  acc.name.includes('Horn') ? <Moon size={24} style={{ color: acc.previewColor }} /> :
-                                  acc.name.includes('Leaf') ? <Flower size={24} style={{ color: acc.previewColor }} /> :
-                                  <Zap size={24} style={{ color: acc.previewColor }} />}
+                {/* 3D Model Rendering Container (Centered inside background) */}
+                <div className="relative w-full h-full flex items-center justify-center">
+                    {/* Show uploaded image if available for 3D module (as a placeholder for the model) */}
+                    {model?.src && (
+                       <img src={model.src} className="absolute inset-0 w-full h-full object-contain mix-blend-normal" />
+                    )}
+
+                    {!model?.src && (
+                        <>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
+                            <div className="relative z-20 flex flex-col items-center gap-8 transform-style-3d">
+                                <div className="relative transform-style-3d animate-bounce" style={{ animationDuration: '4s' }}>
+                                     {acc && (
+                                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-30 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)] animate-pulse">
+                                             {acc.name.includes('Mask') ? <Ghost size={24} style={{ color: acc.previewColor }} /> :
+                                              acc.name.includes('Horn') ? <Moon size={24} style={{ color: acc.previewColor }} /> :
+                                              acc.name.includes('Leaf') ? <Flower size={24} style={{ color: acc.previewColor }} /> :
+                                              <Zap size={24} style={{ color: acc.previewColor }} />}
+                                        </div>
+                                     )}
+                                     <div className="relative z-10 drop-shadow-2xl">
+                                        {model?.category === 'female' ? (
+                                            <User size={100} className="text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
+                                        ) : model?.category === 'male' ? (
+                                            <User size={100} className="text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
+                                        ) : (
+                                            <Cat size={80} className="text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
+                                        )}
+                                     </div>
+                                </div>
+                                <div className="text-center px-6">
+                                    <h3 className="text-2xl font-bold text-white drop-shadow-md">{model?.name || 'Custom Model'}</h3>
+                                    <p className="text-xs text-white/50 mt-1 uppercase tracking-widest">3D Avatar Model</p>
+                                </div>
                             </div>
-                         )}
-                         <div className="relative z-10 drop-shadow-2xl">
-                            {model?.category === 'female' ? (
-                                <User size={100} className="text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
-                            ) : model?.category === 'male' ? (
-                                <User size={100} className="text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
-                            ) : (
-                                <Cat size={80} className="text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
-                            )}
-                         </div>
-                    </div>
-                    <div className="text-center px-6">
-                        <h3 className="text-2xl font-bold text-white drop-shadow-md">{model?.name}</h3>
-                        <p className="text-xs text-white/50 mt-1 uppercase tracking-widest">3D Avatar Model</p>
-                    </div>
+                        </>
+                    )}
                 </div>
+                
                 <div className="absolute inset-0 pointer-events-none">
                      {[1,2,3,4].map(i => (
                         <div 
@@ -996,18 +1233,26 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
                      ))}
                 </div>
             </div>
-            <CallVisualizer active={isCallActive} offsetScale={visualizerOffset} />
         </div>
         
         <CanvasControls />
         
         {isGenerating && (
-            <div 
-               className="absolute top-1/2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300 z-20"
-               style={{ marginTop: `${loaderMarginTop}px`, transition: 'margin-top 0.3s ease' }}
-            >
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none">
                <RainbowLoader size={48} />
-               <span className="text-xs text-white/60 tracking-widest uppercase font-medium">{t.studio.controls.generating}</span>
+               <div className="mt-6 w-48 h-0.5 bg-white/20 rounded-full relative overflow-visible">
+                  {/* Progress Line */}
+                  <div
+                    className="absolute left-0 top-0 h-full bg-gradient-to-r from-orange-500 via-yellow-400 to-white shadow-[0_0_10px_rgba(255,165,0,0.8)]"
+                    style={{ width: `${progress}%` }}
+                  />
+                  {/* Fuse Spark at the tip */}
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full blur-[2px] animate-pulse"
+                    style={{ left: `${progress}%`, transform: 'translate(-50%, -50%)', opacity: progress > 0 ? 1 : 0 }}
+                  />
+               </div>
+               <span className="text-xs text-white/80 tracking-widest uppercase font-medium mt-3">{t.studio.controls.generating} {Math.floor(progress)}%</span>
             </div>
         )}
       </div>
@@ -1019,34 +1264,48 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
     
     return (
       <div className="relative w-full h-full flex flex-col items-center justify-center p-8" onWheel={handleWheel}>
-        <div className={`relative w-auto h-auto flex items-center justify-center transition-all duration-500 ${shouldMoveUp ? '-translate-y-24' : 'translate-y-0'} ${isSpeaking ? 'scale-105' : ''}`}>
+        <AspectRatioMenu />
+        <div className={`relative w-auto h-auto flex items-center justify-center transition-all duration-500 translate-y-0 ${isSpeaking ? 'scale-105' : ''}`}>
            {currentAsset?.src ? (
              <div 
-                className="w-[300px] h-[500px] rounded-2xl overflow-hidden shadow-2xl relative z-10 border-2 border-white"
+                className={`rounded-2xl overflow-hidden shadow-2xl relative z-10 border-2 border-white ${isGenerating ? 'brightness-50 grayscale-[0.5]' : ''} transition-all duration-300`}
                 style={{
+                  ...getBackgroundStyle(), // Apply selected background
+                  width: containerWidth,
+                  height: containerHeight,
                   boxShadow: isSpeaking ? 'none' : '0 0 25px rgba(255,255,255,0.2)',
                   animation: isSpeaking ? 'talking-glow 0.8s infinite' : 'none',
                   transition: isRotating ? 'none' : 'all 0.3s ease',
                   transform: `scale(${canvasTransform.scale}) rotateY(${canvasTransform.rotation}deg)`
                 }}
              >
+                 {/* Avatar Content - Object Contain to preserve original aspect ratio inside the frame */}
                  {currentAsset.mediaType === 'video' ? (
-                    <video src={currentAsset.src} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                    <video src={currentAsset.src} className="w-full h-full object-contain" autoPlay loop muted playsInline />
                  ) : (
-                    <img src={currentAsset.src} alt="avatar" className="w-full h-full object-cover" />
+                    <img src={currentAsset.src} alt="avatar" className="w-full h-full object-contain" />
                  )}
              </div>
            ) : (
              <div 
-                className="w-[300px] h-[500px] rounded-2xl flex items-center justify-center transition-colors duration-500 relative z-10 shadow-2xl border-2 border-white overflow-hidden backdrop-blur-md" 
+                className={`rounded-2xl flex items-center justify-center transition-all duration-300 relative z-10 shadow-2xl border-2 border-white overflow-hidden backdrop-blur-md ${isGenerating ? 'brightness-50 grayscale-[0.5]' : ''}`}
                 style={{ 
-                    background: `linear-gradient(to bottom, ${currentAsset?.previewColor || '#444'}80, #0f0f0f80)`,
+                    // Fallback gradient if no image, or combine with background if transparent
+                    background: selectedBackground.type === 'color' 
+                      ? `linear-gradient(to bottom, ${currentAsset?.previewColor || '#444'}80, #0f0f0f80)`
+                      : `url(${selectedBackground.value})`,
+                    backgroundSize: 'cover',
+                    width: containerWidth,
+                    height: containerHeight,
                     boxShadow: isSpeaking ? 'none' : '0 0 25px rgba(255,255,255,0.2)',
                     animation: isSpeaking ? 'talking-glow 0.8s infinite' : 'none',
                     transition: isRotating ? 'none' : 'all 0.3s ease',
                     transform: `scale(${canvasTransform.scale}) rotateY(${canvasTransform.rotation}deg)`
                 }}
              >
+                {/* Only darken if using an image background to make text readable */}
+                {selectedBackground.type === 'image' && <div className="absolute inset-0 bg-black/40" />}
+                
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                 <div className="relative z-20 flex flex-col items-center gap-6">
                     <span className="text-7xl select-none filter drop-shadow-[0_0_20px_rgba(255,255,255,0.3)] animate-in zoom-in duration-500">
@@ -1065,26 +1324,46 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
                   <div className="absolute -inset-4 bg-green-500/20 rounded-[2rem] animate-pulse blur-xl" />
               </div>
            )}
-
-           <CallVisualizer active={isCallActive} offsetScale={visualizerOffset} />
         </div>
 
         <CanvasControls />
 
         {isGenerating && (
-            <div 
-               className="absolute top-1/2 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300 z-20"
-               style={{ marginTop: `${loaderMarginTop}px`, transition: 'margin-top 0.3s ease' }}
-            >
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-50 pointer-events-none">
                <RainbowLoader size={48} />
-               <span className="text-xs text-white/60 tracking-widest uppercase font-medium">{t.studio.controls.generating}</span>
+               <div className="mt-6 w-48 h-0.5 bg-white/20 rounded-full relative overflow-visible">
+                  {/* Progress Line */}
+                  <div
+                    className="absolute left-0 top-0 h-full bg-gradient-to-r from-orange-500 via-yellow-400 to-white shadow-[0_0_10px_rgba(255,165,0,0.8)]"
+                    style={{ width: `${progress}%` }}
+                  />
+                  {/* Fuse Spark at the tip */}
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full blur-[2px] animate-pulse"
+                    style={{ left: `${progress}%`, transform: 'translate(-50%, -50%)', opacity: progress > 0 ? 1 : 0 }}
+                  />
+               </div>
+               <span className="text-xs text-white/80 tracking-widest uppercase font-medium mt-3">{t.studio.controls.generating} {Math.floor(progress)}%</span>
             </div>
         )}
       </div>
     );
   }
 
-  const get3DTabs = () => ['female', 'male', 'pet', 'mine'] as const;
+  const SearchBar = ({ placeholder, className = "mb-4" }: { placeholder: string, className?: string }) => (
+    <div className={`relative ${className}`}>
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30">
+            <Search size={14} />
+        </div>
+        <input 
+            type="text" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={placeholder}
+            className="w-full bg-[#111] border border-white/10 rounded-lg py-2 pl-9 pr-3 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-colors"
+        />
+    </div>
+  );
 
   const buttonStyle = `
     .fancy-button {
@@ -1180,6 +1459,10 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
         className={`absolute inset-0 z-[100] bg-[#191919]/40 backdrop-blur-xl pointer-events-none transition-opacity duration-700 ease-in-out ${isMounted ? 'opacity-0' : 'opacity-100'}`}
       />
 
+      {/* Hidden File Input for Import */}
+      <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleUpload} />
+
+      {/* Top Bar */}
       <div className={`h-16 border-b border-white/10 bg-black/50 backdrop-blur-md flex items-center justify-between px-6 z-30 shrink-0 transition-all duration-700 delay-100 ${isMounted ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'}`}>
          <div className="flex items-center gap-4">
             <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70 hover:text-white">
@@ -1241,293 +1524,567 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
          </div>
       </div>
 
+      {/* Main Content Area - Horizontal Split */}
       <div className="flex-1 flex overflow-hidden">
         
-        <div className={`w-full md:w-80 border-r border-white/10 bg-black/50 backdrop-blur-xl flex flex-col z-20 relative shadow-xl transition-all duration-700 delay-200 ${isMounted ? 'translate-x-0 opacity-100' : '-translate-x-8 opacity-0'}`}>
-           
-           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-5">
-               <VoiceDropdown 
-                   label={t.studio.controls.voiceLangLabel} 
-                   value={voiceConfig.lang} 
-                   options={VOICE_LANGUAGES} 
-                   onChange={(v) => setVoiceConfig(prev => ({...prev, lang: v}))} 
-               />
-               
-               <div className="space-y-1.5">
-                   <label className="text-xs font-bold text-white/60 pl-1">{t.studio.controls.voiceGenderLabel}</label>
-                   <div className="flex bg-[#111] p-1 rounded-lg border border-white/10">
-                       {['all', 'male', 'female'].map((g) => (
-                           <button 
-                               key={g} 
-                               onClick={() => setVoiceConfig(prev => ({...prev, genderFilter: g as any}))}
-                               className={`flex-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${voiceConfig.genderFilter === g ? 'bg-white text-black shadow-sm' : 'text-white/40 hover:text-white'}`}
-                           >
-                               {t.studio.controls.voiceFilters[g as keyof typeof t.studio.controls.voiceFilters]}
-                           </button>
-                       ))}
-                   </div>
-               </div>
+        {/* Left Column: Canvas + Bottom Editor */}
+        <div className={`flex-1 flex flex-col min-w-0 transition-all duration-700 delay-300 ${isMounted ? 'opacity-100' : 'opacity-0'}`}>
+            
+            {/* Center Canvas */}
+            <div className="flex-1 relative bg-black/10 backdrop-blur-sm overflow-hidden flex items-center justify-center">
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
+                
+                {module === '3d-avatar' ? render3dCanvas() : render2dCanvas()}
 
-               <div className="space-y-1.5">
-                   <label className="text-xs font-bold text-white/60 pl-1">{t.studio.controls.voiceSelectLabel}</label>
-                   <div className="grid grid-cols-2 gap-2 max-h-[140px] overflow-y-auto custom-scrollbar pr-1">
-                       {filteredVoices.map(voice => (
-                           <div 
-                               key={voice.id}
-                               onClick={() => setVoiceConfig(prev => ({...prev, selectedVoice: voice.id}))}
-                               className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer border transition-all ${voiceConfig.selectedVoice === voice.id ? 'bg-white/10 border-white/40' : 'bg-[#111] border-white/5 hover:border-white/20'}`}
-                           >
-                               <div 
-                                   className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-inner"
-                                   style={{ backgroundColor: voice.color }}
-                               >
-                                   <User size={14} className="text-black/50" />
-                               </div>
-                               <div className="overflow-hidden">
-                                   <div className={`text-xs font-medium truncate ${voiceConfig.selectedVoice === voice.id ? 'text-white' : 'text-white/70'}`}>{voice.name}</div>
-                               </div>
-                               {voiceConfig.selectedVoice === voice.id && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_5px_rgba(74,222,128,0.5)]" />}
-                           </div>
-                       ))}
-                       {filteredVoices.length === 0 && (
-                           <div className="col-span-2 py-4 text-center text-xs text-white/30 italic">No voices found</div>
-                       )}
-                   </div>
-               </div>
-               
-               <VoiceDropdown 
-                   label={t.studio.controls.voiceEmotionLabel} 
-                   value={voiceConfig.emotion} 
-                   options={VOICE_EMOTIONS} 
-                   onChange={(v) => setVoiceConfig(prev => ({...prev, emotion: v}))} 
-               />
+                {/* Dialogs within Canvas area for focus */}
+                {showConfirmDialog && (
+                    <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
+                        <div className="bg-[#1a1a1a] border border-red-500/30 p-6 rounded-2xl max-w-sm w-full shadow-2xl">
+                        <div className="flex items-center gap-3 text-red-400 mb-4">
+                            <AlertTriangle size={24} />
+                            <h3 className="text-lg font-bold">{t.studio.dialog.title}</h3>
+                        </div>
+                        <p className="text-gray-400 mb-6 text-sm">{t.studio.dialog.desc}</p>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowConfirmDialog(false)} className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-medium transition-colors">{t.studio.dialog.cancel}</button>
+                            <button onClick={confirmModelChange} className="flex-1 py-2.5 bg-red-600 hover:bg-red-500 rounded-lg text-sm font-medium text-white transition-colors">{t.studio.dialog.confirm}</button>
+                        </div>
+                        </div>
+                    </div>
+                )}
 
-               <div className="space-y-3 pt-1 border-t border-white/5">
-                   <VoiceSlider 
-                       label={t.studio.controls.voiceSpeedLabel} 
-                       icon={Gauge}
-                       value={voiceConfig.speed} 
-                       min={0} max={100} 
-                       onChange={(v) => setVoiceConfig(prev => ({...prev, speed: v}))} 
-                   />
-                   <VoiceSlider 
-                       label={t.studio.controls.voicePitchLabel} 
-                       icon={Volume2}
-                       value={voiceConfig.pitch} 
-                       min={0} max={100} 
-                       onChange={(v) => setVoiceConfig(prev => ({...prev, pitch: v}))} 
-                   />
-               </div>
+                {showCallWarning && (
+                    <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in zoom-in duration-200">
+                        <div className="bg-[#1a1a1a] border border-white/20 p-6 rounded-2xl max-w-sm w-full shadow-2xl relative">
+                        <button 
+                            onClick={() => setShowCallWarning(false)}
+                            className="absolute top-2 right-2 text-white/30 hover:text-white transition-colors"
+                        >
+                            <X size={16} />
+                        </button>
+                        <div className="flex items-center gap-3 text-white mb-4">
+                            <AlertTriangle size={24} />
+                            <h3 className="text-lg font-bold">{t.studio.dialog.tip || "提示"}</h3>
+                        </div>
+                        <p className="text-gray-400 mb-6 text-sm">{t.studio.dialog.callWarning}</p>
+                        <div className="flex">
+                            <button onClick={() => setShowCallWarning(false)} className="flex-1 py-2.5 bg-white text-black hover:bg-gray-200 rounded-lg text-sm font-bold transition-colors">OK</button>
+                        </div>
+                        </div>
+                    </div>
+                )}
+            </div>
 
-               {module === '2d-audio' && (
-                  <div className="space-y-4 pt-2 border-t border-white/5">
-                     {/* Reference Image Upload */}
-                     <div className="space-y-2">
-                         <label className="text-sm font-bold text-white uppercase tracking-widest block">
-                            {t.studio.controls.refImage}
-                         </label>
-                         <div className="flex gap-2 h-16">
-                            <div onClick={() => fileInputRef.current?.click()} className="w-16 h-full shrink-0 rounded-lg border border-dashed border-white/20 bg-white/5 hover:bg-white/10 cursor-pointer flex flex-col items-center justify-center gap-1 transition-all group">
-                               <Upload size={14} className="text-white/30 group-hover:text-white" />
-                               <span className="text-[8px] text-white/30 group-hover:text-white/50">{t.studio.controls.upload}</span>
-                               <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleUpload} />
-                            </div>
-                            <div className="flex-1 overflow-x-auto flex gap-2 custom-scrollbar items-center">
-                               {uploadedHistory.map((asset) => (
-                                 <div key={asset.id} onClick={() => setBaseModel(asset.id)} className={`w-16 h-full shrink-0 rounded-lg overflow-hidden cursor-pointer border relative bg-black ${baseModel === asset.id ? 'border-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'border-white/5'}`}>
-                                   {asset.mediaType === 'video' ? (
-                                     <video src={asset.src} className="w-full h-full object-cover opacity-80" muted />
-                                   ) : (
-                                     <img src={asset.src} alt="" className="w-full h-full object-cover" />
-                                   )}
-                                   {asset.mediaType === 'video' && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><Video size={12} className="text-white drop-shadow-md" /></div>}
-                                 </div>
-                               ))}
-                            </div>
-                         </div>
-                     </div>
-                     {/* Background Music Upload */}
-                     <div className="space-y-2">
-                         <label className="text-sm font-bold text-white uppercase tracking-widest block">
-                            BGM
-                         </label>
-                         <div onClick={() => bgmInputRef.current?.click()} className="w-full h-10 rounded-lg border border-dashed border-white/20 bg-white/5 hover:bg-white/10 cursor-pointer flex items-center justify-center gap-2 transition-all group">
-                             <Music size={14} className="text-white/40 group-hover:text-white" />
-                             <span className="text-xs text-white/40 group-hover:text-white">{t.studio.controls.bgMusic}</span>
-                             <input type="file" ref={bgmInputRef} className="hidden" accept="audio/*" onChange={(e) => handleUpload(e, true)} />
-                         </div>
-                     </div>
-                  </div>
-               )}
-           </div>
-
-           <div className="bg-black/20 border-t border-white/5 flex flex-col relative z-20 shrink-0">
-               
-               <div className="flex flex-col border-b border-white/5 bg-transparent">
-                   <div 
-                     onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
-                     className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-white/5 transition-colors select-none"
-                   >
-                      <div className="flex items-center gap-2 text-xs font-bold text-white/60">
-                         <History size={12} />
-                         {t.studio.controls.history}
-                      </div>
-                      <ChevronDown size={12} className={`text-white/40 transition-transform duration-300 ${isHistoryExpanded ? '' : 'rotate-180'}`} />
-                   </div>
-                   
-                   {isHistoryExpanded && (
-                     <div className="h-48 overflow-y-auto p-4 space-y-3 custom-scrollbar border-t border-white/5 bg-black/40 backdrop-blur-md">
+            {/* Bottom Panel - History & Editor - REDUCED HEIGHT */}
+            <div className={`h-[220px] bg-[#111] border-t border-white/10 flex flex-row shrink-0 relative z-20 shadow-2xl`}>
+                
+                {/* Left: History & Start Call */}
+                <div className="w-[240px] border-r border-white/10 flex flex-col bg-[#0f0f0f]">
+                    <div className="flex items-center gap-2 text-xs font-bold text-white/60 px-4 py-3 border-b border-white/5">
+                        <History size={12} />
+                        {t.studio.controls.history}
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                         {messages.length === 0 && (
-                          <div className="h-full flex flex-col items-center justify-center text-white/20 gap-2">
-                             <MessageSquare size={20} />
-                             <p className="text-[10px]">No history</p>
-                          </div>
+                            <div className="h-full flex flex-col items-center justify-center text-white/20 gap-2">
+                                <MessageSquare size={20} />
+                                <p className="text-[10px]">No history</p>
+                            </div>
                         )}
                         {messages.map((msg) => (
-                          <div key={msg.id} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                             <div className={`max-w-[90%] p-2.5 rounded-xl text-xs leading-relaxed ${
-                               msg.role === 'user' 
-                                 ? 'bg-indigo-600 text-white rounded-tr-none' 
-                                 : 'bg-[#222] text-gray-300 border border-white/5 rounded-tl-none'
-                             }`}>
+                            <div key={msg.id} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[90%] p-2.5 rounded-xl text-xs leading-relaxed ${
+                                msg.role === 'user' 
+                                    ? 'bg-indigo-600 text-white rounded-tr-none' 
+                                    : 'bg-[#222] text-gray-300 border border-white/5 rounded-tl-none'
+                                }`}>
                                 {msg.text}
-                             </div>
-                          </div>
+                                </div>
+                            </div>
                         ))}
                         <div ref={messagesEndRef} />
-                     </div>
-                   )}
-               </div>
+                    </div>
 
-               <div className="p-4 pb-2 space-y-3 relative">
-                  {isVoiceRecording && (
-                     <div className="absolute bottom-full right-4 mb-2 z-50">
-                        <VoiceCard onCancel={cancelVoiceRecording} />
-                     </div>
-                  )}
+                    <div className="p-4 border-t border-white/5">
+                        {(module === '2d-chat' || module === '3d-avatar' || module === '2d-avatar') ? (
+                        <button 
+                            onClick={() => setIsCallActive(!isCallActive)} 
+                            className={`fancy-button ${isCallActive ? 'red' : 'green'} w-full h-10 flex items-center justify-center text-xs`}
+                        >
+                            <span className="text-xs font-bold flex items-center gap-2">
+                            {isCallActive ? <PhoneOff size={14} /> : <Phone size={14} />}
+                            {isCallActive ? t.studio.controls.endCall : t.studio.controls.voiceCall}
+                            </span>
+                        </button>
+                        ) : null}
+                    </div>
+                </div>
 
-                  <div className="relative flex items-end bg-black/20 border border-white/10 rounded-xl px-2 py-1 focus-within:border-white/30 transition-colors">
-                      <textarea
-                        ref={textareaRef}
-                        rows={1}
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (module !== '2d-audio' && e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSendMessage();
+                {/* Right: Rich Text Editor Style Input */}
+                <div className="flex-1 flex flex-col bg-[#141414] relative">
+                    {/* Toolbar */}
+                    <div className="h-10 border-b border-white/5 flex items-center px-4 gap-1 overflow-x-auto no-scrollbar whitespace-nowrap bg-[#181818] relative z-20">
+                        {TOOLBAR_ITEMS.map((item) => {
+                            let displayLabel = item.label;
+                            if (item.id === 'import') {
+                                if (module === '2d-audio') displayLabel = '参考视频';
+                                else if (module === '3d-avatar') displayLabel = '倒入模型';
                             }
-                        }}
-                        placeholder={module === '2d-audio' ? t.studio.controls.drivePlaceholder : t.studio.controls.chatPlaceholder}
-                        className="flex-1 bg-transparent border-none text-xs text-white placeholder:text-white/20 px-2 focus:outline-none resize-none py-2 max-h-32 min-h-[32px] custom-scrollbar"
-                      />
-                      
-                      <div className="flex items-center gap-1 mb-0.5 pb-1">
-                          <button
-                            onClick={toggleVoiceRecording}
-                            className={`p-1.5 rounded-lg transition-all ${isVoiceRecording ? 'bg-red-500/20 text-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
-                            title={t.studio.controls.voiceInput}
-                          >
-                            {isVoiceRecording ? <Square fill="currentColor" size={16} /> : <Mic size={16} />}
-                          </button>
+                            return (
+                                <button
+                                    key={item.id}
+                                    onClick={() => handleToolbarClick(item.id)}
+                                    className="flex flex-col items-center justify-center min-w-[40px] h-full gap-0.5 px-1 hover:bg-white/5 transition-colors text-white/60 hover:text-white group"
+                                    title={displayLabel}
+                                >
+                                    <item.icon size={14} className="text-blue-400/80 group-hover:text-blue-400 transition-colors" />
+                                    <span className="text-[9px] scale-90 origin-center font-medium whitespace-nowrap">{displayLabel}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
 
-                          {module !== '2d-audio' && (
+                    {/* Import Popover Menu */}
+                    {isImportMenuOpen && (
+                        <div className="absolute top-12 left-4 w-64 bg-[#1a1a1a] border border-white/10 rounded-xl p-3 shadow-2xl z-30 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-wider pb-1 border-b border-white/5">
+                                <span>
+                                    {module === '3d-avatar' ? '倒入模型' : 
+                                     module === '2d-audio' ? '参考视频' : 
+                                     '导入文件'}
+                                </span>
+                                <button onClick={() => setIsImportMenuOpen(false)} className="hover:text-white"><X size={14}/></button>
+                            </div>
                             <button 
-                              onClick={handleSendMessage} 
-                              disabled={!inputValue.trim()}
-                              className="p-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-30 disabled:bg-transparent disabled:text-gray-500 transition-colors"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="flex items-center justify-center gap-2 w-full py-3 bg-white/5 hover:bg-white/10 border border-white/5 border-dashed rounded-lg text-xs text-white/70 transition-colors"
                             >
-                              <Send size={14} />
+                                <Upload size={14} />
+                                Upload New
                             </button>
-                          )}
+                            <div className="max-h-40 overflow-y-auto custom-scrollbar space-y-1.5">
+                                {uploadedHistory.length === 0 && <p className="text-[10px] text-center text-white/20 py-2">No history</p>}
+                                {uploadedHistory.map(asset => (
+                                <button 
+                                    key={asset.id} 
+                                    onClick={() => { setBaseModel(asset.id); setIsImportMenuOpen(false); }} 
+                                    className="flex items-center gap-2 w-full p-1.5 hover:bg-white/5 rounded-md transition-colors text-left group"
+                                >
+                                    <div className="w-8 h-8 rounded bg-[#111] overflow-hidden shrink-0 border border-white/5">
+                                        {asset.mediaType === 'video' ? (
+                                            <video src={asset.src} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <img src={asset.src} className="w-full h-full object-cover" />
+                                        )}
+                                    </div>
+                                    <span className="text-[10px] text-white/70 truncate flex-1 group-hover:text-white">{asset.name}</span>
+                                </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Text Area Container */}
+                    <div className="flex-1 relative p-4 overflow-hidden">
+                        {/* Audio Visualizer Overlay in Center of Text Area */}
+                        <CallVisualizer 
+                            active={isCallActive} 
+                            width={400} 
+                            height={120} 
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10" 
+                        />
+
+                        {isVoiceRecording && (
+                            <div className="absolute top-2 right-4 z-50">
+                                <VoiceCard onCancel={cancelVoiceRecording} />
+                            </div>
+                        )}
+                        <textarea
+                            ref={textareaRef}
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (module !== '2d-audio' && e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendMessage();
+                                }
+                            }}
+                            placeholder={module === '2d-audio' ? t.studio.controls.drivePlaceholder : t.studio.controls.chatPlaceholder}
+                            className={`w-full h-full bg-transparent border-none text-sm text-gray-200 placeholder:text-white/10 focus:outline-none resize-none custom-scrollbar leading-relaxed font-light transition-all duration-500 ${isCallActive ? 'opacity-10 blur-sm pointer-events-none' : ''}`}
+                            spellCheck={false}
+                        />
+                    </div>
+
+                    {/* Bottom Status Bar */}
+                    <div className="h-8 border-t border-white/5 flex justify-end items-center px-4 gap-2 text-[10px] text-white/30 bg-[#111] select-none relative z-20">
+                        <button 
+                            onClick={() => setInputValue('')}
+                            className="hover:text-white flex items-center gap-1 transition-colors px-2 py-1 hover:bg-white/5 rounded mr-auto"
+                            title="Clear"
+                        >
+                            <Trash2 size={14} />
+                        </button>
+
+                        {/* Voice Input Button */}
+                        <button 
+                            onClick={toggleVoiceRecording}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded transition-colors ${isVoiceRecording ? 'bg-red-500/20 text-red-400' : 'hover:bg-white/5 hover:text-white text-white/60'}`}
+                            title="Voice Input to Text"
+                        >
+                            <Mic size={14} />
+                            <span className="hidden sm:inline">语音输入</span>
+                        </button>
+
+                        {/* Send / Generate Button */}
+                        <button 
+                            onClick={module === '2d-audio' ? handleGenerate : handleSendMessage}
+                            disabled={module === '2d-audio' && (isGenerating || isPlaying)} // Add loading state check for audio generation
+                            className={`flex items-center gap-1.5 px-3 py-1 ${module === '2d-audio' && (isGenerating || isPlaying) ? 'bg-gray-600' : 'bg-blue-600 hover:bg-blue-500'} text-white rounded font-medium transition-colors shadow-lg shadow-blue-900/20`}
+                            title={module === '2d-audio' ? t.studio.controls.generate : "Send Message"}
+                        >
+                            {module === '2d-audio' ? (
+                                (isGenerating || isPlaying) ? (
+                                     <><SquareIcon size={12} fill="currentColor" /><span>{t.studio.controls.cancelVoice}</span></>
+                                ) : (
+                                     <><Play size={12} fill="currentColor" /><span>{t.studio.controls.generate}</span></>
+                                )
+                            ) : (
+                                <><Send size={12} /><span>发送</span></>
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        {/* Right Column: Library + Nav (Full Height) */}
+        <div className={`flex shrink-0 h-full border-l border-white/10 relative z-30 transition-all duration-700 delay-300 ${isMounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8'}`}>
+            {/* Right Panel */}
+            <div className="w-80 bg-black/50 backdrop-blur-xl flex flex-col relative shadow-xl">
+                {/* Content based on Active Tab - similar logic as before but streamlined */}
+                {/* ... (Reuse existing logic for rendering content based on activeRightTab) ... */}
+                {activeRightTab === 'voice' && (
+                  <div className="flex-1 flex flex-col h-full fade-in duration-300">
+                      <div className="shrink-0 px-5 pt-5 pb-2">
+                          <div className="flex items-center gap-2 text-white/50 text-xs font-bold uppercase tracking-wider mb-2">
+                             <Mic size={14} />
+                             {t.studio.controls.voice}
+                          </div>
+                          <SearchBar placeholder={t.studio.controls.searchVoice} className="mb-0" />
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto custom-scrollbar px-5 pb-5 pt-2 space-y-6">
+                          <VoiceDropdown 
+                              label={t.studio.controls.voiceLangLabel} 
+                              value={voiceConfig.lang} 
+                              options={VOICE_LANGUAGES} 
+                              onChange={(v) => handleVoiceConfigChange(prev => ({...prev, lang: v}))} 
+                          />
+                          
+                          <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-white/60 pl-1">{t.studio.controls.voiceGenderLabel}</label>
+                              <div className="flex bg-[#111] p-1 rounded-lg border border-white/10">
+                                  {['all', 'male', 'female'].map((g) => (
+                                      <button 
+                                          key={g} 
+                                          onClick={() => handleVoiceConfigChange(prev => ({...prev, genderFilter: g as any}))}
+                                          className={`flex-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${voiceConfig.genderFilter === g ? 'bg-white text-black shadow-sm' : 'text-white/40 hover:text-white'}`}
+                                      >
+                                          {t.studio.controls.voiceFilters[g as keyof typeof t.studio.controls.voiceFilters]}
+                                      </button>
+                                  ))}
+                              </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                              <label className="text-xs font-bold text-white/60 pl-1">{t.studio.controls.voiceSelectLabel}</label>
+                              <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                                  {filteredVoices.map(voice => (
+                                      <div 
+                                          key={voice.id}
+                                          onClick={() => handleVoiceConfigChange(prev => ({...prev, selectedVoice: voice.id}))}
+                                          className={`group relative flex items-center gap-2 p-2 rounded-lg cursor-pointer border transition-all overflow-hidden ${voiceConfig.selectedVoice === voice.id ? 'bg-white/10 border-white/40' : 'bg-[#111] border-white/5 hover:border-white/20'}`}
+                                      >
+                                          <div className="relative w-8 h-8 shrink-0">
+                                              <div 
+                                                  className="w-full h-full rounded-full flex items-center justify-center shadow-inner transition-all duration-300 group-hover:blur-[2px]"
+                                                  style={{ backgroundColor: voice.color }}
+                                              >
+                                                  <User size={14} className="text-black/50" />
+                                              </div>
+                                              {/* Play Overlay on Hover */}
+                                              <div 
+                                                onClick={(e) => handleVoicePreview(e, voice.id)}
+                                                title="Audition / 试听"
+                                                className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 hover:scale-110"
+                                              >
+                                                  <Play size={12} fill="white" className="text-white drop-shadow-md" />
+                                              </div>
+                                          </div>
+                                          
+                                          <div className="overflow-hidden flex-1">
+                                              <div className={`text-xs font-medium truncate ${voiceConfig.selectedVoice === voice.id ? 'text-white' : 'text-white/70'}`}>{voice.name}</div>
+                                          </div>
+                                          {voiceConfig.selectedVoice === voice.id && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_5px_rgba(74,222,128,0.5)]" />}
+                                      </div>
+                                  ))}
+                                  {filteredVoices.length === 0 && (
+                                      <div className="col-span-2 py-4 text-center text-xs text-white/30 italic">No voices found</div>
+                                  )}
+                              </div>
+                          </div>
+                          
+                          <div className="space-y-2 pt-2">
+                              <label className="text-xs font-bold text-white/60 pl-1">{t.studio.controls.voiceEmotionLabel}</label>
+                              <div className="flex gap-4 overflow-x-auto pb-4 pt-1 px-1 custom-scrollbar snap-x">
+                                  {VOICE_EMOTIONS.map((emotion) => (
+                                      <button
+                                          key={emotion.id}
+                                          onClick={() => handleVoiceConfigChange(prev => ({...prev, emotion: emotion.id}))}
+                                          className="flex flex-col items-center gap-2 shrink-0 group snap-start"
+                                      >
+                                          <div className={`w-14 h-14 rounded-full p-0.5 transition-all duration-300 ${
+                                              voiceConfig.emotion === emotion.id 
+                                              ? 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] scale-105' 
+                                              : 'bg-transparent group-hover:bg-white/20'
+                                          }`}>
+                                              <div className="w-full h-full rounded-full overflow-hidden relative">
+                                                  <img 
+                                                      src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop" 
+                                                      alt={emotion.name}
+                                                      className={`w-full h-full object-cover transition-transform duration-500 ${
+                                                          voiceConfig.emotion === emotion.id ? 'scale-110' : 'grayscale-[0.5] group-hover:grayscale-0'
+                                                      }`}
+                                                  />
+                                              </div>
+                                          </div>
+                                          <span className={`text-[10px] font-medium tracking-wide transition-colors duration-200 ${
+                                              voiceConfig.emotion === emotion.id ? 'text-blue-400' : 'text-white/50 group-hover:text-white'
+                                          }`}>
+                                              {emotion.name}
+                                          </span>
+                                      </button>
+                                  ))}
+                              </div>
+                          </div>
                       </div>
                   </div>
-               </div>
+                )}
 
-               <div className="px-4 pb-4">
-                  {(module === '2d-chat' || module === '3d-avatar' || module === '2d-avatar') ? (
-                      <button 
-                         onClick={() => setIsCallActive(!isCallActive)} 
-                         className={`fancy-button ${isCallActive ? 'red' : 'green'} w-full h-12 flex items-center justify-center`}
-                      >
-                         <span className="text-base font-bold">
-                           {isCallActive ? <PhoneOff size={18} /> : <Phone size={18} />}
-                           {isCallActive ? t.studio.controls.endCall : t.studio.controls.voiceCall}
-                         </span>
-                      </button>
-                  ) : (
-                      <button 
-                        onClick={handleGenerate} 
-                        disabled={(!inputValue.trim() && module === '2d-audio' && !isGenerating && !isPlaying)} 
-                        className={`fancy-button ${isGenerating || isPlaying ? 'red' : ''} w-full h-12 flex items-center justify-center`}
-                      >
-                         <span className="text-base font-bold">
-                             {(isGenerating || isPlaying) ? <SquareIcon size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
-                             {(isGenerating || isPlaying) ? t.studio.controls.cancelVoice : t.studio.controls.generate}
-                         </span>
-                      </button>
-                  )}
-               </div>
+                {activeRightTab === 'avatar' && (
+                  <div className="flex-1 flex flex-col h-full fade-in duration-300">
+                      <div className="shrink-0 px-5 pt-5 pb-0">
+                         <div className="flex items-center gap-2 text-white/50 text-xs font-bold uppercase tracking-wider mb-2">
+                           <User size={14} />
+                           {t.studio.assets.models}
+                         </div>
+                         <SearchBar placeholder={t.studio.controls.searchAvatar} className="mb-0" />
+                      </div>
 
-           </div>
+                      {/* Sub-tabs for ALL modules (2D & 3D) */}
+                      <div className="shrink-0 px-5 pt-3 pb-2 border-b border-white/10 overflow-x-auto no-scrollbar flex gap-4">
+                           {get3DTabs().map(tab => (
+                             <button key={tab} onClick={() => setActiveAvatarTab(tab)} className={`pb-2 text-xs font-bold uppercase transition-all border-b-2 whitespace-nowrap ${activeAvatarTab === tab ? 'text-white border-white' : 'text-white/40 border-transparent hover:text-white'}`}>
+                               {tab === 'all' ? (lang === 'zh' ? '全部' : 'All') : t.studio.assets.tabs[tab]}
+                             </button>
+                           ))}
+                      </div>
 
-        </div>
-
-        <div className={`flex-1 relative bg-black/10 backdrop-blur-sm overflow-hidden flex items-center justify-center transition-all duration-1000 delay-300 ${isMounted ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
-           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
-           
-           {module === '3d-avatar' ? render3dCanvas() : render2dCanvas()}
-
-           {showConfirmDialog && (
-             <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6">
-                <div className="bg-[#1a1a1a] border border-red-500/30 p-6 rounded-2xl max-w-sm w-full shadow-2xl">
-                   <div className="flex items-center gap-3 text-red-400 mb-4">
-                      <AlertTriangle size={24} />
-                      <h3 className="text-lg font-bold">{t.studio.dialog.title}</h3>
-                   </div>
-                   <p className="text-gray-400 mb-6 text-sm">{t.studio.dialog.desc}</p>
-                   <div className="flex gap-3">
-                      <button onClick={() => setShowConfirmDialog(false)} className="flex-1 py-2.5 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-medium transition-colors">{t.studio.dialog.cancel}</button>
-                      <button onClick={confirmModelChange} className="flex-1 py-2.5 bg-red-600 hover:bg-red-500 rounded-lg text-sm font-medium text-white transition-colors">{t.studio.dialog.confirm}</button>
-                   </div>
-                </div>
-             </div>
-           )}
-        </div>
-
-        <div className={`w-full md:w-80 border-l border-white/10 bg-black/50 backdrop-blur-xl flex flex-col z-20 transition-all duration-700 delay-200 ${isMounted ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'}`}>
-           <div className="flex items-center px-6 pt-6 mb-4 border-b border-white/10 overflow-x-auto no-scrollbar">
-              {module === '3d-avatar' ? (
-                get3DTabs().map(tab => (
-                  <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-3 px-3 text-xs font-bold uppercase transition-all border-b-2 whitespace-nowrap ${activeTab === tab ? 'text-white border-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'text-white/40 border-transparent hover:text-white'}`}>
-                    {t.studio.assets.tabs[tab]}
-                  </button>
-                ))
-              ) : (
-                 <>
-                  <button onClick={() => setActiveTab('public')} className={`pb-3 px-4 text-sm font-medium transition-all border-b-2 ${activeTab === 'public' ? 'text-white border-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'text-white/40 border-transparent hover:text-white'}`}>{t.studio.assets.tabs.public}</button>
-                  <button onClick={() => setActiveTab('mine')} className={`pb-3 px-4 text-sm font-medium transition-all border-b-2 ${activeTab === 'mine' ? 'text-white border-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]' : 'text-white/40 border-transparent hover:text-white'}`}>{t.studio.assets.tabs.mine}</button>
-                 </>
-              )}
-           </div>
-
-           <div className="flex-1 overflow-y-auto custom-scrollbar p-6 pt-2">
-                 
-                 {module === '3d-avatar' && (
-                   <div className="space-y-6">
-                      
-                      {activeTab === 'mine' ? (
-                        <div className="space-y-3">
-                           <div className="flex items-center gap-2 text-white/50 text-xs font-bold uppercase tracking-wider">
-                             <Save size={12} />
-                             {t.studio.assets.tabs.mine}
-                           </div>
+                      <div className="flex-1 overflow-y-auto custom-scrollbar px-5 pb-5 pt-4 space-y-4">
+                           {/* Avatar Grid */}
                            <div className="grid grid-cols-2 gap-4">
-                              {/* Filter saved assets by module '3d-avatar' */}
-                              {savedAssets.filter(a => a.module === '3d-avatar' && a.type === 'snapshot').map(asset => (
+                               {(module === '3d-avatar' 
+                                  ? ASSETS.filter(a => a.type === 'base' && (activeAvatarTab === 'all' || a.category === activeAvatarTab))
+                                  : ASSETS.filter(a => a.type === 'template' && (activeAvatarTab === 'all' || a.category === activeAvatarTab))
+                               ).filter(a => !searchQuery || a.name.toLowerCase().includes(searchQuery.toLowerCase())).map(asset => (
+                                  <div 
+                                    key={asset.id} 
+                                    onClick={() => handleAssetClick(asset)}
+                                    className={`aspect-[3/4] rounded-lg overflow-hidden cursor-pointer border flex flex-col bg-[#111] group hover:border-white/30 transition-all ${baseModel === asset.id ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'border-white/5'}`}
+                                  >
+                                    <div className="flex-1 flex items-center justify-center bg-white/5 relative overflow-hidden group-hover:bg-white/10 transition-colors w-full">
+                                       {asset.src ? (
+                                         <img src={asset.src} className="w-full h-full object-cover" />
+                                       ) : (
+                                         <>
+                                            {asset.category === 'female' ? <Sparkles size={32} className="text-pink-400" /> : 
+                                             asset.category === 'male' ? <Sword size={32} className="text-blue-400" /> : 
+                                             asset.category === 'pet' ? <Cat size={32} className="text-orange-400" /> :
+                                             <User size={32} className="text-white/50" />}
+                                         </>
+                                       )}
+                                       <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent">
+                                           <p className="text-[10px] font-medium text-white text-center drop-shadow-md">{asset.name}</p>
+                                       </div>
+                                    </div>
+                                  </div>
+                               ))}
+                               {(module === '3d-avatar' 
+                                  ? ASSETS.filter(a => a.type === 'base' && (activeAvatarTab === 'all' || a.category === activeAvatarTab))
+                                  : ASSETS.filter(a => a.type === 'template' && (activeAvatarTab === 'all' || a.category === activeAvatarTab))
+                               ).filter(a => !searchQuery || a.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                                  <div className="col-span-2 text-center py-8 text-xs text-white/30 italic">
+                                    No models found in this category
+                                  </div>
+                               )}
+                           </div>
+                      </div>
+                  </div>
+                )}
+
+                {activeRightTab === 'accessory' && module === '3d-avatar' && (
+                  <div className="flex-1 flex flex-col h-full fade-in duration-300">
+                      <div className="shrink-0 px-5 pt-5 pb-0">
+                         <div className="flex items-center gap-2 text-white/50 text-xs font-bold uppercase tracking-wider mb-2">
+                           <Glasses size={14} />
+                           {t.studio.assets.accessories}
+                         </div>
+                         <SearchBar placeholder={t.studio.controls.searchAccessory} className="mb-0" />
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto custom-scrollbar px-5 pb-5 pt-4 space-y-4">
+                           <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1">
+                              {[
+                                { id: 'all', label: '全部', icon: null },
+                                { id: 'top', label: '上衣', icon: Shirt },
+                                { id: 'bottom', label: '下衣', icon: Scissors }, 
+                                { id: 'shoes', label: '鞋子', icon: Footprints },
+                                { id: 'decoration', label: '配饰', icon: Glasses },
+                              ].map((cat) => (
+                                 <button 
+                                    key={cat.id}
+                                    onClick={() => setAccessoryFilter(cat.id as any)}
+                                    className={`px-2.5 py-1.5 rounded-full text-[10px] font-medium border transition-all flex items-center gap-1 whitespace-nowrap ${
+                                      accessoryFilter === cat.id 
+                                      ? 'bg-white text-black border-white' 
+                                      : 'bg-white/5 text-white/60 border-transparent hover:bg-white/10 hover:text-white'
+                                    }`}
+                                 >
+                                    {cat.icon && <cat.icon size={10} />}
+                                    {cat.label}
+                                 </button>
+                              ))}
+                           </div>
+                           
+                           <div className="grid grid-cols-3 gap-3">
+                              {ASSETS.filter(a => 
+                                 a.type === 'accessory' && 
+                                 a.compatibleWith?.includes(baseModel) &&
+                                 (accessoryFilter === 'all' || a.subCategory === accessoryFilter) &&
+                                 (!searchQuery || a.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                              ).map(asset => (
+                                 <div 
+                                   key={asset.id} 
+                                   onClick={() => handleAssetClick(asset)}
+                                   className={`aspect-square rounded-lg overflow-hidden cursor-pointer border flex flex-col bg-[#111] group hover:border-white/30 transition-all ${accessory === asset.id ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'border-white/5'}`}
+                                 >
+                                   <div className="flex-1 flex items-center justify-center bg-white/5 relative group-hover:bg-white/10 transition-colors">
+                                     {asset.name.includes('Mask') ? <Ghost size={20} style={{ color: asset.previewColor }} /> :
+                                      asset.name.includes('Horn') ? <Moon size={20} style={{ color: asset.previewColor }} /> :
+                                      asset.name.includes('Leaf') ? <Flower size={20} style={{ color: asset.previewColor }} /> :
+                                      <Zap size={20} style={{ color: asset.previewColor }} />}
+                                      
+                                      <div className="absolute bottom-0 left-0 right-0 p-1 bg-gradient-to-t from-black/90 to-transparent">
+                                          <p className="text-[9px] font-medium text-white text-center truncate drop-shadow-md">{asset.name}</p>
+                                      </div>
+                                   </div>
+                                 </div>
+                              ))}
+                              {ASSETS.filter(a => a.type === 'accessory' && a.compatibleWith?.includes(baseModel)).length === 0 && (
+                                <div className="col-span-3 text-center py-4 text-xs text-white/20 italic">
+                                  No accessories for this model
+                                </div>
+                              )}
+                           </div>
+                      </div>
+                  </div>
+                )}
+
+                {activeRightTab === 'action' && (
+                  <div className="flex-1 flex flex-col h-full fade-in duration-300">
+                      <div className="shrink-0 px-5 pt-5 pb-0">
+                         <div className="flex items-center gap-2 text-white/50 text-xs font-bold uppercase tracking-wider mb-2">
+                           <Activity size={14} />
+                           {t.studio.controls.actions}
+                         </div>
+                         <SearchBar placeholder={t.studio.controls.searchActions} className="mb-0" />
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto custom-scrollbar px-5 pb-5 pt-4">
+                           <div className="grid grid-cols-2 gap-3">
+                              {ACTIONS.filter(act => !searchQuery || act.name.toLowerCase().includes(searchQuery.toLowerCase())).map(action => (
+                                 <button 
+                                    key={action.id}
+                                    onClick={() => console.log('Action triggered:', action.name)}
+                                    className="p-4 bg-[#111] border border-white/5 rounded-xl hover:border-white/30 hover:bg-white/5 transition-all flex flex-col items-center gap-2 group"
+                                 >
+                                    <span className="text-2xl group-hover:scale-110 transition-transform duration-300">{action.icon}</span>
+                                    <span className="text-xs font-medium text-white/70 group-hover:text-white">{action.name}</span>
+                                 </button>
+                              ))}
+                           </div>
+                      </div>
+                  </div>
+                )}
+
+                {activeRightTab === 'background' && (
+                  <div className="flex-1 flex flex-col h-full fade-in duration-300">
+                      <div className="shrink-0 px-5 pt-5 pb-0">
+                         <div className="flex items-center gap-2 text-white/50 text-xs font-bold uppercase tracking-wider mb-2">
+                           <ImageIcon size={14} />
+                           背景选择
+                         </div>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto custom-scrollbar px-5 pb-5 pt-4">
+                           <div className="grid grid-cols-2 gap-3">
+                              {BACKGROUNDS.map(bg => (
+                                 <button 
+                                    key={bg.id}
+                                    onClick={() => setSelectedBackground(bg)}
+                                    className={`relative aspect-[16/9] rounded-xl overflow-hidden border transition-all group ${selectedBackground.id === bg.id ? 'border-white ring-1 ring-white' : 'border-white/10 hover:border-white/40'}`}
+                                 >
+                                    {bg.type === 'color' ? (
+                                        <div className="w-full h-full" style={{ backgroundColor: bg.value }} />
+                                    ) : (
+                                        <img src={bg.value} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                    )}
+                                    <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent text-left">
+                                        <span className="text-[10px] font-medium text-white shadow-sm">{bg.name}</span>
+                                    </div>
+                                    {selectedBackground.id === bg.id && (
+                                        <div className="absolute top-2 right-2 bg-green-500 text-black p-0.5 rounded-full">
+                                            <Check size={10} strokeWidth={3} />
+                                        </div>
+                                    )}
+                                 </button>
+                              ))}
+                           </div>
+                      </div>
+                  </div>
+                )}
+
+                {activeRightTab === 'mine' && (
+                   <div className="flex-1 flex flex-col h-full fade-in duration-300">
+                      <div className="shrink-0 px-5 pt-5 pb-0">
+                         <div className="flex items-center gap-2 text-white/50 text-xs font-bold uppercase tracking-wider mb-2">
+                           <Save size={14} />
+                           {t.studio.assets.tabs.mine}
+                         </div>
+                         <SearchBar placeholder={t.studio.controls.searchMine} className="mb-0" />
+                      </div>
+                      
+                      <div className="flex-1 overflow-y-auto custom-scrollbar px-5 pb-5 pt-4 space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                              {/* Saved Snapshots */}
+                              {savedAssets.filter(a => a.module === module && (!searchQuery || a.name.toLowerCase().includes(searchQuery.toLowerCase()))).map(asset => (
                                 <div key={asset.id} onClick={() => handleAssetClick(asset)} className="aspect-[3/4] rounded-lg overflow-hidden cursor-pointer border flex flex-col bg-[#111] group hover:border-white/30 transition-all border-white/5">
                                    <div className="flex-1 flex items-center justify-center bg-white/5 relative">
-                                      <Crown size={24} className="text-yellow-500" />
+                                      {asset.type === 'snapshot' ? <Crown size={24} className="text-yellow-500" /> : <User size={24} className="text-white/50" />}
                                    </div>
                                    <div className="p-2 bg-[#151515] relative">
                                       <div className="absolute bottom-0 left-0 right-0 p-1 bg-gradient-to-t from-black/80 to-transparent">
@@ -1536,148 +2093,88 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
                                    </div>
                                 </div>
                               ))}
-                              {savedAssets.filter(a => a.module === '3d-avatar').length === 0 && (
-                                <div className="col-span-2 text-center text-xs text-white/20 py-4 italic border border-dashed border-white/10 rounded">No saved avatars</div>
-                              )}
-                           </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="space-y-3">
-                             <div className="flex items-center gap-2 text-white/50 text-xs font-bold uppercase tracking-wider">
-                               <User size={12} />
-                               {t.studio.assets.models}
-                             </div>
-                             <div className="grid grid-cols-2 gap-4">
-                               {ASSETS.filter(a => a.type === 'base' && a.category === activeTab).map(asset => (
-                                  <div 
-                                    key={asset.id} 
-                                    onClick={() => handleAssetClick(asset)}
-                                    className={`aspect-[3/4] rounded-lg overflow-hidden cursor-pointer border flex flex-col bg-[#111] group hover:border-white/30 transition-all ${baseModel === asset.id ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'border-white/5'}`}
-                                  >
-                                    <div className="flex-1 flex items-center justify-center bg-white/5 relative overflow-hidden group-hover:bg-white/10 transition-colors">
-                                      {asset.category === 'female' ? <Sparkles size={32} className="text-pink-400" /> : 
-                                       asset.category === 'male' ? <Sword size={32} className="text-blue-400" /> : 
-                                       <Cat size={32} className="text-orange-400" />}
-                                       
-                                       <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent">
-                                           <p className="text-[10px] font-medium text-white text-center drop-shadow-md">{asset.name}</p>
-                                       </div>
-                                    </div>
-                                  </div>
-                               ))}
-                             </div>
-                          </div>
-
-                          <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4">
-                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-white/50 text-xs font-bold uppercase tracking-wider">
-                                  <Glasses size={12} />
-                                  {t.studio.assets.accessories}
-                                </div>
-                             </div>
-
-                             <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1">
-                                {[
-                                  { id: 'all', label: '全部', icon: null },
-                                  { id: 'top', label: '上衣', icon: Shirt },
-                                  { id: 'bottom', label: '下衣', icon: Scissors }, 
-                                  { id: 'shoes', label: '鞋子', icon: Footprints },
-                                  { id: 'decoration', label: '配饰', icon: Glasses },
-                                ].map((cat) => (
-                                   <button 
-                                      key={cat.id}
-                                      onClick={() => setAccessoryFilter(cat.id as any)}
-                                      className={`px-2.5 py-1.5 rounded-full text-[10px] font-medium border transition-all flex items-center gap-1 whitespace-nowrap ${
-                                        accessoryFilter === cat.id 
-                                        ? 'bg-white text-black border-white' 
-                                        : 'bg-white/5 text-white/60 border-transparent hover:bg-white/10 hover:text-white'
-                                      }`}
-                                   >
-                                      {cat.icon && <cat.icon size={10} />}
-                                      {cat.label}
-                                   </button>
-                                ))}
-                             </div>
-                             
-                             <div className="grid grid-cols-3 gap-3">
-                               {ASSETS.filter(a => 
-                                  a.type === 'accessory' && 
-                                  a.compatibleWith?.includes(baseModel) &&
-                                  (accessoryFilter === 'all' || a.subCategory === accessoryFilter)
-                               ).map(asset => (
-                                  <div 
-                                    key={asset.id} 
-                                    onClick={() => handleAssetClick(asset)}
-                                    className={`aspect-square rounded-lg overflow-hidden cursor-pointer border flex flex-col bg-[#111] group hover:border-white/30 transition-all ${accessory === asset.id ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'border-white/5'}`}
-                                  >
-                                    <div className="flex-1 flex items-center justify-center bg-white/5 relative group-hover:bg-white/10 transition-colors">
-                                      {asset.name.includes('Mask') ? <Ghost size={20} style={{ color: asset.previewColor }} /> :
-                                       asset.name.includes('Horn') ? <Moon size={20} style={{ color: asset.previewColor }} /> :
-                                       asset.name.includes('Leaf') ? <Flower size={20} style={{ color: asset.previewColor }} /> :
-                                       <Zap size={20} style={{ color: asset.previewColor }} />}
-                                       
-                                       <div className="absolute bottom-0 left-0 right-0 p-1 bg-gradient-to-t from-black/90 to-transparent">
-                                           <p className="text-[9px] font-medium text-white text-center truncate drop-shadow-md">{asset.name}</p>
-                                       </div>
-                                    </div>
-                                  </div>
-                               ))}
-                               {ASSETS.filter(a => a.type === 'accessory' && a.compatibleWith?.includes(baseModel)).length === 0 && (
-                                 <div className="col-span-3 text-center py-4 text-xs text-white/20 italic">
-                                   No accessories for this model
-                                 </div>
-                               )}
-                             </div>
-                          </div>
-                        </>
-                      )}
-                   </div>
-                 )}
-
-                 {module !== '3d-avatar' && (
-                    <div className="grid grid-cols-2 gap-4">
-                      {activeTab === 'mine' && (
-                          <>
-                            {savedAssets.filter(a => a.module === module).map(asset => (
-                              <div key={asset.id} onClick={() => setBaseModel(asset.id)} className={`aspect-[3/4] rounded-lg overflow-hidden cursor-pointer border flex flex-col bg-[#111] group hover:border-white/30 transition-all ${baseModel === asset.id ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'border-white/5'}`}>
-                                <div className="flex-1 bg-white/5 relative">
-                                  <div className="absolute inset-0 flex items-center justify-center text-white/30"><User /></div>
+                              
+                              {/* Uploaded History in Mine */}
+                              {uploadedHistory.filter(a => !searchQuery || a.name.toLowerCase().includes(searchQuery.toLowerCase())).map(asset => (
+                                <div key={asset.id} onClick={() => setBaseModel(asset.id)} className={`aspect-[3/4] rounded-lg overflow-hidden cursor-pointer border flex flex-col bg-[#111] group hover:border-white/30 transition-all ${baseModel === asset.id ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'border-white/5'}`}>
+                                  <img src={asset.src} className="w-full h-full object-cover" />
                                   <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent">
                                       <p className="text-[10px] text-white text-center truncate drop-shadow-md">{asset.name}</p>
                                   </div>
                                 </div>
-                              </div>
-                            ))}
-                            {/* Also show uploaded history in Mine for 2D? The prompt says "Uploaded history in Mine" logic was existing. Let's keep existing behavior or merge? Existing code showed uploaded history in Mine. */}
-                            {uploadedHistory.map(asset => (
-                              <div key={asset.id} onClick={() => setBaseModel(asset.id)} className={`aspect-[3/4] rounded-lg overflow-hidden cursor-pointer border flex flex-col bg-[#111] group hover:border-white/30 transition-all ${baseModel === asset.id ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'border-white/5'}`}>
-                                <img src={asset.src} className="w-full h-full object-cover" />
-                                <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent">
-                                    <p className="text-[10px] text-white text-center truncate drop-shadow-md">{asset.name}</p>
+                              ))}
+
+                              {savedAssets.filter(a => a.module === module).length === 0 && uploadedHistory.length === 0 && (
+                                <div className="col-span-2 text-center text-xs text-white/20 py-10 italic border border-dashed border-white/10 rounded">
+                                  No saved items
                                 </div>
-                              </div>
-                            ))}
-                          </>
-                      )}
-                      {activeTab === 'public' && ASSETS.filter(a => a.type === 'template').map(asset => (
-                          <div key={asset.id} onClick={() => setBaseModel(asset.id)} className={`aspect-[3/4] rounded-lg overflow-hidden cursor-pointer border flex flex-col bg-[#111] group hover:border-white/30 transition-all ${baseModel === asset.id ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'border-white/5'}`}>
-                             {/* Display Image if SRC exists */}
-                             <div className="relative w-full h-full">
-                               {asset.src ? (
-                                  <img src={asset.src} alt={asset.name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                               ) : (
-                                  <div className="flex-1 flex items-center justify-center bg-white/5 w-full h-full"><Shirt size={32} className="text-white/50" /></div>
-                               )}
-                               <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent pointer-events-none">
-                                   <p className="text-[10px] text-white font-medium text-center truncate drop-shadow-md">{asset.name}</p>
-                               </div>
-                             </div>
-                          </div>
-                      ))}
-                    </div>
-                 )}
-           </div>
+                              )}
+                           </div>
+                      </div>
+                   </div>
+                )}
+            </div>
+
+            {/* Vertical Navigation Strip */}
+            <div className="w-[60px] border-l border-white/10 bg-black/40 backdrop-blur-md flex flex-col items-center py-6 gap-6 z-30 shadow-2xl">
+                <button 
+                  onClick={() => setActiveRightTab('avatar')}
+                  className={`p-3 rounded-xl transition-all duration-300 relative group ${activeRightTab === 'avatar' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+                  title="Avatar Library"
+                >
+                  <User size={20} />
+                  {activeRightTab === 'avatar' && <div className="absolute left-0 top-1/2 -translate-x-full ml-[-8px] w-1 h-8 bg-white rounded-r-full -translate-y-1/2" />}
+                </button>
+                
+                {module === '3d-avatar' && (
+                  <button 
+                    onClick={() => setActiveRightTab('accessory')}
+                    className={`p-3 rounded-xl transition-all duration-300 relative group ${activeRightTab === 'accessory' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+                    title="Accessories"
+                  >
+                    <Glasses size={20} />
+                    {activeRightTab === 'accessory' && <div className="absolute left-0 top-1/2 -translate-x-full ml-[-8px] w-1 h-8 bg-white rounded-r-full -translate-y-1/2" />}
+                  </button>
+                )}
+
+                {(module === '2d-avatar' || module === '3d-avatar') && (
+                  <button 
+                    onClick={() => setActiveRightTab('action')}
+                    className={`p-3 rounded-xl transition-all duration-300 relative group ${activeRightTab === 'action' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+                    title="Actions"
+                  >
+                    <Activity size={20} />
+                    {activeRightTab === 'action' && <div className="absolute left-0 top-1/2 -translate-x-full ml-[-8px] w-1 h-8 bg-white rounded-r-full -translate-y-1/2" />}
+                  </button>
+                )}
+
+                <button 
+                  onClick={() => setActiveRightTab('background')}
+                  className={`p-3 rounded-xl transition-all duration-300 relative group ${activeRightTab === 'background' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+                  title="Background"
+                >
+                  <ImageIcon size={20} />
+                  {activeRightTab === 'background' && <div className="absolute left-0 top-1/2 -translate-x-full ml-[-8px] w-1 h-8 bg-white rounded-r-full -translate-y-1/2" />}
+                </button>
+
+                <button 
+                  onClick={() => setActiveRightTab('voice')}
+                  className={`p-3 rounded-xl transition-all duration-300 relative group ${activeRightTab === 'voice' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+                  title="Voice Settings"
+                >
+                  <Mic size={20} />
+                  {activeRightTab === 'voice' && <div className="absolute left-0 top-1/2 -translate-x-full ml-[-8px] w-1 h-8 bg-white rounded-r-full -translate-y-1/2" />}
+                </button>
+
+                <button 
+                  onClick={() => setActiveRightTab('mine')}
+                  className={`p-3 rounded-xl transition-all duration-300 relative group ${activeRightTab === 'mine' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
+                  title="My Assets"
+                >
+                  <Layers size={20} />
+                  {activeRightTab === 'mine' && <div className="absolute left-0 top-1/2 -translate-x-full ml-[-8px] w-1 h-8 bg-white rounded-r-full -translate-y-1/2" />}
+                </button>
+            </div>
         </div>
 
       </div>

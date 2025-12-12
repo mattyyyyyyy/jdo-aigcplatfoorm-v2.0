@@ -35,6 +35,7 @@ const TEXT_CONTENT = {
         refImage: "参考形象 / 视频",
         bgMusic: "上传背景音乐",
         upload: "上传",
+        uploadModel: "上传模型",
         input: "输入模式",
         placeholder: "输入对话内容...",
         drivePlaceholder: "输入想要数字人播报的内容...",
@@ -45,21 +46,29 @@ const TEXT_CONTENT = {
         generating: "生成中...",
         ready: "READY",
         history: "历史记录",
-        voiceCall: "语音通话",
-        endCall: "结束通话",
+        voiceCall: "开始对话",
+        endCall: "结束对话",
         send: "发送",
         voiceInput: "语音输入文字",
         listening: "正在听...",
         cancelVoice: "取消",
         finishVoice: "说完了",
         releaseToSend: "松开发送",
-        callActive: "通话中"
+        callActive: "通话中",
+        searchVoice: "搜索音色名...",
+        searchAvatar: "搜索形象名...",
+        searchAccessory: "搜索配饰名...",
+        searchMine: "搜索预设名...",
+        actions: "动作",
+        searchActions: "搜索动作..."
       },
       dialog: {
         title: "覆盖模型?",
         desc: "切换基础模型将重置当前的配饰组合。确定要继续吗？",
         confirm: "确定覆盖",
-        cancel: "取消"
+        cancel: "取消",
+        callWarning: "请先结束当前对话",
+        tip: "提示"
       },
       assets: {
         title: "资产库",
@@ -105,6 +114,7 @@ const TEXT_CONTENT = {
         refImage: "Reference Image / Video",
         bgMusic: "Upload BGM",
         upload: "Upload",
+        uploadModel: "Upload Model",
         input: "Input Mode",
         placeholder: "Type your message...",
         drivePlaceholder: "Enter text for the avatar to speak...",
@@ -115,21 +125,29 @@ const TEXT_CONTENT = {
         generating: "Generating...",
         ready: "READY",
         history: "History",
-        voiceCall: "Voice Call",
-        endCall: "End Call",
+        voiceCall: "Start Conversation",
+        endCall: "End Conversation",
         send: "Send",
         voiceInput: "Voice Input to Text",
         listening: "Listening...",
         cancelVoice: "Cancel",
         finishVoice: "Done",
         releaseToSend: "Release to Send",
-        callActive: "In Call"
+        callActive: "In Call",
+        searchVoice: "Search voice name...",
+        searchAvatar: "Search avatar name...",
+        searchAccessory: "Search accessory name...",
+        searchMine: "Search preset name...",
+        actions: "Actions",
+        searchActions: "Search actions..."
       },
       dialog: {
         title: "Overwrite Model?",
         desc: "Switching the base model will reset your current accessory combination. Are you sure?",
         confirm: "Overwrite",
-        cancel: "Cancel"
+        cancel: "Cancel",
+        callWarning: "Please end the current conversation first",
+        tip: "Notice"
       },
       assets: {
         title: "Asset Library",
