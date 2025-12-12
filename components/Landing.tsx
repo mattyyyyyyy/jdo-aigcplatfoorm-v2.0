@@ -1,47 +1,28 @@
 import React, { useState, useEffect, useRef, memo, useMemo } from 'react';
-import { Mic, MessageSquare, Box, Globe, Ghost } from 'lucide-react';
+import { Mic, MessageSquare, Box, Globe, Ghost, ChevronDown, Check } from 'lucide-react';
 import { AppModule } from '../types';
 import GlassCard3D from './GlassCard3D';
 
 interface LandingProps {
   onSelectModule: (module: AppModule) => void;
   lang: 'zh' | 'en';
-  toggleLanguage: () => void;
+  setLang: (lang: 'zh' | 'en') => void;
   t: any;
 }
 
 const JDOLogo = memo(() => (
-  <svg 
-    width="106" 
-    height="32" 
-    viewBox="0 0 106 32" 
-    fill="none" 
-    xmlns="http://www.w3.org/2000/svg" 
-    className="drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]"
-    aria-label="JDO Logo"
-  >
-    <defs>
-      <mask id="bean-cutout">
-        <rect width="32" height="32" fill="white" />
-        <path 
-          d="M17 9C21.5 9 25 12.5 25 17C25 21.5 21.5 25 17 25C14.5 25 12.5 22.5 11.5 20.5C10.5 18.5 12.5 17 14 17C15.5 17 16.5 18 16.5 19C16.5 19.5 16.2 20 16 20.5C17 21 19 20.5 20 18.5C21 16.5 20 14.5 18 13.5C16 12.5 14 13.5 13 14.5C11 12.5 12.5 9 17 9Z" 
-          fill="black" 
-        />
-      </mask>
-    </defs>
-    <circle cx="16" cy="16" r="16" fill="white" mask="url(#bean-cutout)" />
+  <div className="flex items-center gap-3">
+    <img 
+      src="https://github.com/mattyyyyyyy/picture2bed/blob/main/e850352ac65c103853436eb801478413b07eca802308%20(1).png?raw=true" 
+      alt="JDO Logo" 
+      className="w-8 h-8 object-contain drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+    />
     <text 
-      x="40" 
-      y="24" 
-      fontFamily="'Noto Sans SC', sans-serif" 
-      fontWeight="900" 
-      fontSize="24" 
-      fill="white" 
-      letterSpacing="-0.5"
+      className="font-sans font-black text-2xl text-white tracking-tighter drop-shadow-md select-none"
     >
       JDO
     </text>
-  </svg>
+  </div>
 ));
 
 // --- Isolated Typewriter Component ---
@@ -191,7 +172,7 @@ const FeatureCard: React.FC<FeatureCardProps> = memo(({
   );
 });
 
-export default function Landing({ onSelectModule, lang, toggleLanguage, t }: LandingProps) {
+export default function Landing({ onSelectModule, lang, setLang, t }: LandingProps) {
   const [animData, setAnimData] = useState<{
     module: AppModule;
     rect: DOMRect;
@@ -199,6 +180,7 @@ export default function Landing({ onSelectModule, lang, toggleLanguage, t }: Lan
   } | null>(null);
   const [isExpanding, setIsExpanding] = useState(false);
   const [deckScale, setDeckScale] = useState(1);
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
 
   // Card Deck State
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -374,12 +356,37 @@ export default function Landing({ onSelectModule, lang, toggleLanguage, t }: Lan
            <JDOLogo />
         </div>
         
-        <div 
-          onClick={toggleLanguage}
-          className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white cursor-pointer transition-colors opacity-80 hover:opacity-100 select-none z-20"
-        >
-          <span>{t.navLang}</span>
-          <Globe size={16} />
+        <div className="relative z-50">
+          <button 
+            onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+            className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white cursor-pointer transition-colors opacity-80 hover:opacity-100 select-none bg-white/5 border border-white/10 px-3 py-1.5 rounded-full"
+          >
+            <Globe size={16} />
+            <span>{t.navLang}</span>
+            <ChevronDown size={14} className={`transition-transform duration-200 ${isLangMenuOpen ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {isLangMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)} />
+              <div className="absolute top-full right-0 mt-2 w-32 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100 p-1">
+                <button
+                  onClick={() => { setLang('zh'); setIsLangMenuOpen(false); }}
+                  className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left rounded-lg transition-colors ${lang === 'zh' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                >
+                  简体中文
+                  {lang === 'zh' && <Check size={12} className="text-green-400" />}
+                </button>
+                <button
+                  onClick={() => { setLang('en'); setIsLangMenuOpen(false); }}
+                  className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left rounded-lg transition-colors ${lang === 'en' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                >
+                  English
+                  {lang === 'en' && <Check size={12} className="text-green-400" />}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </nav>
 

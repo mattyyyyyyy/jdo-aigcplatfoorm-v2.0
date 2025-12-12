@@ -7,7 +7,7 @@ import { AppModule, Asset } from './types';
 
 const TEXT_CONTENT = {
   zh: {
-    navLang: 'EN',
+    navLang: '简体中文',
     heroTitle: "新一代 AIGC 创作平台",
     heroSubtitle: "我们赋予你重塑数字命运的力量",
     features: ["2D 对口型", "2D 实时对话", "2D 虚拟化身", "3D 虚拟化身"],
@@ -86,7 +86,7 @@ const TEXT_CONTENT = {
     }
   },
   en: {
-    navLang: '中',
+    navLang: 'English',
     heroTitle: "Next-Gen AIGC Platform",
     heroSubtitle: "Empowering you to reshape your digital destiny",
     features: ["2D Lip Sync", "2D Real-time Chat", "2D Virtual Avatar", "3D Virtual Avatar"],
@@ -197,7 +197,7 @@ export default function App() {
             module={currentModule} 
             onChangeModule={setCurrentModule}
             lang={lang} 
-            toggleLanguage={() => setLang(prev => prev === 'zh' ? 'en' : 'zh')}
+            setLang={setLang}
             onBack={() => setCurrentModule(null)}
             onOpenSettings={() => {}} 
             savedAssets={savedAssets}
@@ -208,7 +208,7 @@ export default function App() {
           <Landing 
             onSelectModule={setCurrentModule} 
             lang={lang}
-            toggleLanguage={() => setLang(prev => prev === 'zh' ? 'en' : 'zh')}
+            setLang={setLang}
             t={t}
           />
         )}

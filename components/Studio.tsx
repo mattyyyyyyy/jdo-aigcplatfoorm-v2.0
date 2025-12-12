@@ -48,6 +48,7 @@ import {
   FileBox,
   ChevronRight,
   ChevronLeft,
+  ChevronUp,
   PlayCircle,
   Undo2,
   Redo2,
@@ -74,7 +75,7 @@ interface StudioProps {
   module: AppModule;
   onChangeModule: (module: AppModule) => void;
   lang: 'zh' | 'en';
-  toggleLanguage: () => void;
+  setLang: (lang: 'zh' | 'en') => void;
   onBack: () => void;
   onOpenSettings: () => void;
   savedAssets: Asset[];
@@ -635,7 +636,7 @@ const TOOLBAR_ITEMS = [
   { icon: Sparkles, label: '占位P', id: 'ai' },
 ];
 
-export default function Studio({ module, onChangeModule, lang, toggleLanguage, onBack, onOpenSettings, savedAssets, onSaveAsset, t }: StudioProps) {
+export default function Studio({ module, onChangeModule, lang, setLang, onBack, onOpenSettings, savedAssets, onSaveAsset, t }: StudioProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isModuleMenuOpen, setIsModuleMenuOpen] = useState(false);
   const [voiceConfig, setVoiceConfig] = useState({
@@ -691,8 +692,14 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
   const [aspectRatio, setAspectRatio] = useState(ASPECT_RATIOS[0]); // Default 2:3
   const [showRatioMenu, setShowRatioMenu] = useState(false);
 
+  // Toolbar State
+  const [isOverflowOpen, setIsOverflowOpen] = useState(false);
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const VISIBLE_TOOLBAR_COUNT = 12;
 
   const featureTitle = useMemo(() => {
     switch (module) {
@@ -739,6 +746,7 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
     setProgress(0);
     setSelectedBackground(BACKGROUNDS[0]);
     setAspectRatio(ASPECT_RATIOS[0]);
+    setIsOverflowOpen(false);
     
     if (generationTimerRef.current) cancelAnimationFrame(generationTimerRef.current);
     if (playbackTimerRef.current) clearTimeout(playbackTimerRef.current);
@@ -1374,15 +1382,15 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
     
       position: relative;
       padding: 0; /* Handled by flex container */
-      font-size: 18px;
+      font-size: 14px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 1.2px;
+      letter-spacing: 0.8px;
       color: #1a1a1a;
       background: linear-gradient(135deg, var(--bg-1), var(--bg-2));
       border: none;
-      border-radius: 12px;
+      border-radius: 8px;
       cursor: pointer;
       overflow: hidden;
       white-space: nowrap;
@@ -1508,11 +1516,39 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
             </div>
          </div>
          
-         <div className="flex items-center gap-4">
-            <button onClick={toggleLanguage} className="flex items-center gap-1.5 text-xs text-white/60 hover:text-white transition-colors bg-white/5 px-2 py-1 rounded-full border border-white/5">
-                 <Globe size={12} />
-                 <span>{lang === 'zh' ? '中文' : 'EN'}</span>
-            </button>
+         <div className="flex items-center gap-4 relative z-50">
+            <div className="relative">
+              <button 
+                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                className="flex items-center gap-2 text-xs text-white/60 hover:text-white transition-colors bg-white/5 px-2 py-1 rounded-full border border-white/5"
+              >
+                  <Globe size={12} />
+                  <span>{lang === 'zh' ? '简体中文' : 'English'}</span>
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${isLangMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isLangMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)} />
+                  <div className="absolute top-full right-0 mt-2 w-28 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100 p-1">
+                    <button
+                      onClick={() => { setLang('zh'); setIsLangMenuOpen(false); }}
+                      className={`flex items-center justify-between w-full px-3 py-2 text-xs text-left rounded-md transition-colors ${lang === 'zh' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    >
+                      简体中文
+                      {lang === 'zh' && <Check size={12} className="text-green-400" />}
+                    </button>
+                    <button
+                      onClick={() => { setLang('en'); setIsLangMenuOpen(false); }}
+                      className={`flex items-center justify-between w-full px-3 py-2 text-xs text-left rounded-md transition-colors ${lang === 'en' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    >
+                      English
+                      {lang === 'en' && <Check size={12} className="text-green-400" />}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
 
             <button 
               onClick={handleSaveState}
@@ -1575,187 +1611,199 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
                 )}
             </div>
 
-            {/* Bottom Panel - History & Editor - REDUCED HEIGHT */}
-            <div className={`h-[220px] bg-[#111] border-t border-white/10 flex flex-row shrink-0 relative z-20 shadow-2xl`}>
+            {/* Bottom Panel - Editor Only - REDUCED HEIGHT */}
+            <div className={`h-[220px] bg-[#111] border-t border-white/10 flex flex-col shrink-0 relative z-20 shadow-2xl`}>
                 
-                {/* Left: History & Start Call */}
-                <div className="w-[240px] border-r border-white/10 flex flex-col bg-[#0f0f0f]">
-                    <div className="flex items-center gap-2 text-xs font-bold text-white/60 px-4 py-3 border-b border-white/5">
-                        <History size={12} />
-                        {t.studio.controls.history}
-                    </div>
+                {/* Toolbar */}
+                <div className="border-b border-white/5 flex items-center bg-[#181818] h-14 relative z-30 px-2 gap-2">
                     
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                        {messages.length === 0 && (
-                            <div className="h-full flex flex-col items-center justify-center text-white/20 gap-2">
-                                <MessageSquare size={20} />
-                                <p className="text-[10px]">No history</p>
-                            </div>
-                        )}
-                        {messages.map((msg) => (
-                            <div key={msg.id} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[90%] p-2.5 rounded-xl text-xs leading-relaxed ${
-                                msg.role === 'user' 
-                                    ? 'bg-indigo-600 text-white rounded-tr-none' 
-                                    : 'bg-[#222] text-gray-300 border border-white/5 rounded-tl-none'
-                                }`}>
-                                {msg.text}
-                                </div>
-                            </div>
-                        ))}
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    <div className="p-4 border-t border-white/5">
-                        {(module === '2d-chat' || module === '3d-avatar' || module === '2d-avatar') ? (
-                        <button 
+                    {/* Start Conversation Button - Only for relevant modules */}
+                    {(module === '2d-chat' || module === '3d-avatar' || module === '2d-avatar') && (
+                      <div className="shrink-0 h-full flex items-center pr-2 border-r border-white/5">
+                         <button 
                             onClick={() => setIsCallActive(!isCallActive)} 
-                            className={`fancy-button ${isCallActive ? 'red' : 'green'} w-full h-10 flex items-center justify-center text-xs`}
+                            className={`fancy-button ${isCallActive ? 'red' : 'green'} w-[200px] h-10 flex items-center justify-center shadow-lg transition-all duration-300`}
                         >
-                            <span className="text-xs font-bold flex items-center gap-2">
-                            {isCallActive ? <PhoneOff size={14} /> : <Phone size={14} />}
+                            <span className="text-sm font-bold flex items-center gap-2">
+                            {isCallActive ? <PhoneOff size={16} /> : <Phone size={16} />}
                             {isCallActive ? t.studio.controls.endCall : t.studio.controls.voiceCall}
                             </span>
                         </button>
-                        ) : null}
-                    </div>
-                </div>
+                      </div>
+                    )}
 
-                {/* Right: Rich Text Editor Style Input */}
-                <div className="flex-1 flex flex-col bg-[#141414] relative">
-                    {/* Toolbar */}
-                    <div className="h-10 border-b border-white/5 flex items-center px-4 gap-1 overflow-x-auto no-scrollbar whitespace-nowrap bg-[#181818] relative z-20">
-                        {TOOLBAR_ITEMS.map((item) => {
+                    <div className="flex-1 flex items-center gap-1 overflow-hidden h-full">
+                        {TOOLBAR_ITEMS.slice(0, VISIBLE_TOOLBAR_COUNT).map((item) => {
                             let displayLabel = item.label;
                             if (item.id === 'import') {
                                 if (module === '2d-audio') displayLabel = '参考视频';
-                                else if (module === '3d-avatar') displayLabel = '倒入模型';
+                                else if (module === '3d-avatar') displayLabel = '导入模型';
                             }
                             return (
                                 <button
                                     key={item.id}
                                     onClick={() => handleToolbarClick(item.id)}
-                                    className="flex flex-col items-center justify-center min-w-[40px] h-full gap-0.5 px-1 hover:bg-white/5 transition-colors text-white/60 hover:text-white group"
+                                    className="flex flex-col items-center justify-center min-w-[50px] h-full gap-0.5 px-2 py-1 hover:bg-white/5 transition-colors text-white/60 hover:text-white group rounded-md"
                                     title={displayLabel}
                                 >
-                                    <item.icon size={14} className="text-blue-400/80 group-hover:text-blue-400 transition-colors" />
-                                    <span className="text-[9px] scale-90 origin-center font-medium whitespace-nowrap">{displayLabel}</span>
+                                    <item.icon size={18} className="text-blue-400/80 group-hover:text-blue-400 transition-colors" />
+                                    <span className="text-[10px] origin-center font-medium whitespace-nowrap">{displayLabel}</span>
                                 </button>
                             );
                         })}
                     </div>
 
-                    {/* Import Popover Menu */}
-                    {isImportMenuOpen && (
-                        <div className="absolute top-12 left-4 w-64 bg-[#1a1a1a] border border-white/10 rounded-xl p-3 shadow-2xl z-30 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
-                            <div className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-wider pb-1 border-b border-white/5">
-                                <span>
-                                    {module === '3d-avatar' ? '倒入模型' : 
-                                     module === '2d-audio' ? '参考视频' : 
-                                     '导入文件'}
-                                </span>
-                                <button onClick={() => setIsImportMenuOpen(false)} className="hover:text-white"><X size={14}/></button>
-                            </div>
-                            <button 
-                                onClick={() => fileInputRef.current?.click()}
-                                className="flex items-center justify-center gap-2 w-full py-3 bg-white/5 hover:bg-white/10 border border-white/5 border-dashed rounded-lg text-xs text-white/70 transition-colors"
-                            >
-                                <Upload size={14} />
-                                Upload New
-                            </button>
-                            <div className="max-h-40 overflow-y-auto custom-scrollbar space-y-1.5">
-                                {uploadedHistory.length === 0 && <p className="text-[10px] text-center text-white/20 py-2">No history</p>}
-                                {uploadedHistory.map(asset => (
-                                <button 
-                                    key={asset.id} 
-                                    onClick={() => { setBaseModel(asset.id); setIsImportMenuOpen(false); }} 
-                                    className="flex items-center gap-2 w-full p-1.5 hover:bg-white/5 rounded-md transition-colors text-left group"
-                                >
-                                    <div className="w-8 h-8 rounded bg-[#111] overflow-hidden shrink-0 border border-white/5">
-                                        {asset.mediaType === 'video' ? (
-                                            <video src={asset.src} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <img src={asset.src} className="w-full h-full object-cover" />
-                                        )}
-                                    </div>
-                                    <span className="text-[10px] text-white/70 truncate flex-1 group-hover:text-white">{asset.name}</span>
-                                </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    {/* Expand/Collapse Button (Overflow Trigger) */}
+                    <div className="h-full flex items-center pl-2 border-l border-white/5 relative">
+                        <button 
+                           onClick={() => setIsOverflowOpen(!isOverflowOpen)}
+                           className={`p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors ${isOverflowOpen ? 'bg-white/10 text-white' : ''}`}
+                        >
+                            <ChevronUp size={20} className={`transition-transform duration-300 ${isOverflowOpen ? 'rotate-180' : ''}`} />
+                        </button>
 
-                    {/* Text Area Container */}
-                    <div className="flex-1 relative p-4 overflow-hidden">
-                        {/* Audio Visualizer Overlay in Center of Text Area */}
-                        <CallVisualizer 
-                            active={isCallActive} 
-                            width={400} 
-                            height={120} 
-                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10" 
-                        />
-
-                        {isVoiceRecording && (
-                            <div className="absolute top-2 right-4 z-50">
-                                <VoiceCard onCancel={cancelVoiceRecording} />
+                        {/* Overflow Menu */}
+                        {isOverflowOpen && (
+                            <div className="absolute bottom-full right-0 mb-2 min-w-[180px] bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl p-2 grid grid-cols-3 gap-1 animate-in slide-in-from-bottom-2 fade-in z-50">
+                                {TOOLBAR_ITEMS.slice(VISIBLE_TOOLBAR_COUNT).map((item) => {
+                                    let displayLabel = item.label;
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => { handleToolbarClick(item.id); setIsOverflowOpen(false); }}
+                                            className="flex flex-col items-center justify-center p-2 hover:bg-white/5 rounded-lg gap-1 transition-colors text-white/60 hover:text-white group"
+                                            title={displayLabel}
+                                        >
+                                            <item.icon size={16} className="text-blue-400/80 group-hover:text-blue-400 transition-colors" />
+                                            <span className="text-[9px] text-center font-medium truncate w-full">{displayLabel}</span>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         )}
-                        <textarea
-                            ref={textareaRef}
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (module !== '2d-audio' && e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSendMessage();
-                                }
-                            }}
-                            placeholder={module === '2d-audio' ? t.studio.controls.drivePlaceholder : t.studio.controls.chatPlaceholder}
-                            className={`w-full h-full bg-transparent border-none text-sm text-gray-200 placeholder:text-white/10 focus:outline-none resize-none custom-scrollbar leading-relaxed font-light transition-all duration-500 ${isCallActive ? 'opacity-10 blur-sm pointer-events-none' : ''}`}
-                            spellCheck={false}
-                        />
-                    </div>
-
-                    {/* Bottom Status Bar */}
-                    <div className="h-8 border-t border-white/5 flex justify-end items-center px-4 gap-2 text-[10px] text-white/30 bg-[#111] select-none relative z-20">
-                        <button 
-                            onClick={() => setInputValue('')}
-                            className="hover:text-white flex items-center gap-1 transition-colors px-2 py-1 hover:bg-white/5 rounded mr-auto"
-                            title="Clear"
-                        >
-                            <Trash2 size={14} />
-                        </button>
-
-                        {/* Voice Input Button */}
-                        <button 
-                            onClick={toggleVoiceRecording}
-                            className={`flex items-center gap-1.5 px-3 py-1 rounded transition-colors ${isVoiceRecording ? 'bg-red-500/20 text-red-400' : 'hover:bg-white/5 hover:text-white text-white/60'}`}
-                            title="Voice Input to Text"
-                        >
-                            <Mic size={14} />
-                            <span className="hidden sm:inline">语音输入</span>
-                        </button>
-
-                        {/* Send / Generate Button */}
-                        <button 
-                            onClick={module === '2d-audio' ? handleGenerate : handleSendMessage}
-                            disabled={module === '2d-audio' && (isGenerating || isPlaying)} // Add loading state check for audio generation
-                            className={`flex items-center gap-1.5 px-3 py-1 ${module === '2d-audio' && (isGenerating || isPlaying) ? 'bg-gray-600' : 'bg-blue-600 hover:bg-blue-500'} text-white rounded font-medium transition-colors shadow-lg shadow-blue-900/20`}
-                            title={module === '2d-audio' ? t.studio.controls.generate : "Send Message"}
-                        >
-                            {module === '2d-audio' ? (
-                                (isGenerating || isPlaying) ? (
-                                     <><SquareIcon size={12} fill="currentColor" /><span>{t.studio.controls.cancelVoice}</span></>
-                                ) : (
-                                     <><Play size={12} fill="currentColor" /><span>{t.studio.controls.generate}</span></>
-                                )
-                            ) : (
-                                <><Send size={12} /><span>发送</span></>
-                            )}
-                        </button>
                     </div>
                 </div>
 
+                {/* Import Popover Menu */}
+                {isImportMenuOpen && (
+                    <div className="absolute top-12 left-4 w-64 bg-[#1a1a1a] border border-white/10 rounded-xl p-3 shadow-2xl z-30 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-wider pb-1 border-b border-white/5">
+                            <span>
+                                {module === '3d-avatar' ? '导入模型' : 
+                                 module === '2d-audio' ? '参考视频' : 
+                                 '导入文件'}
+                            </span>
+                            <button onClick={() => setIsImportMenuOpen(false)} className="hover:text-white"><X size={14}/></button>
+                        </div>
+                        <button 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex items-center justify-center gap-2 w-full py-3 bg-white/5 hover:bg-white/10 border border-white/5 border-dashed rounded-lg text-xs text-white/70 transition-colors"
+                        >
+                            <Upload size={14} />
+                            Upload New
+                        </button>
+                        <div className="max-h-40 overflow-y-auto custom-scrollbar space-y-1.5">
+                            {uploadedHistory.length === 0 && <p className="text-[10px] text-center text-white/20 py-2">No history</p>}
+                            {uploadedHistory.map(asset => (
+                            <button 
+                                key={asset.id} 
+                                onClick={() => { setBaseModel(asset.id); setIsImportMenuOpen(false); }} 
+                                className="flex items-center gap-2 w-full p-1.5 hover:bg-white/5 rounded-md transition-colors text-left group"
+                            >
+                                <div className="w-8 h-8 rounded bg-[#111] overflow-hidden shrink-0 border border-white/5">
+                                    {asset.mediaType === 'video' ? (
+                                        <video src={asset.src} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <img src={asset.src} className="w-full h-full object-cover" />
+                                    )}
+                                </div>
+                                <span className="text-[10px] text-white/70 truncate flex-1 group-hover:text-white">{asset.name}</span>
+                            </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Text Area Container */}
+                <div className="flex-1 relative p-4 overflow-hidden">
+                    {/* Audio Visualizer Overlay in Center of Text Area */}
+                    <CallVisualizer 
+                        active={isCallActive} 
+                        width={400} 
+                        height={120} 
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10" 
+                    />
+
+                    {isVoiceRecording && (
+                        <div className="absolute top-2 right-4 z-50">
+                            <VoiceCard onCancel={cancelVoiceRecording} />
+                        </div>
+                    )}
+                    <textarea
+                        ref={textareaRef}
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (module !== '2d-audio' && e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                            }
+                        }}
+                        placeholder={module === '2d-audio' ? t.studio.controls.drivePlaceholder : t.studio.controls.chatPlaceholder}
+                        className={`w-full h-full bg-transparent border-none text-sm text-gray-200 placeholder:text-white/10 focus:outline-none resize-none custom-scrollbar leading-relaxed font-light transition-all duration-500 ${isCallActive ? 'opacity-10 blur-sm pointer-events-none' : ''}`}
+                        spellCheck={false}
+                    />
+                </div>
+
+                {/* Bottom Status Bar */}
+                <div className="h-8 border-t border-white/5 flex justify-end items-center px-4 gap-2 text-[10px] text-white/30 bg-[#111] select-none relative z-20">
+                    <button 
+                        onClick={() => setInputValue('')}
+                        className="hover:text-white flex items-center gap-1 transition-colors px-2 py-1 hover:bg-white/5 rounded mr-auto"
+                        title="Clear"
+                    >
+                        <Trash2 size={14} />
+                    </button>
+
+                    {/* Voice Input Button */}
+                    <button 
+                        onClick={toggleVoiceRecording}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded transition-colors ${isVoiceRecording ? 'bg-red-500/20 text-red-400' : 'hover:bg-white/5 hover:text-white text-white/60'}`}
+                        title="Voice Input to Text"
+                    >
+                        <Mic size={14} />
+                        <span className="hidden sm:inline">语音输入</span>
+                    </button>
+
+                    {/* Send Button */}
+                    <button 
+                        onClick={module === '2d-audio' ? handleGenerate : handleSendMessage}
+                        disabled={module === '2d-audio' && (isGenerating || isPlaying)} 
+                        className={`flex items-center gap-1.5 px-3 py-1 ${module === '2d-audio' && (isGenerating || isPlaying) ? 'bg-gray-600' : 'bg-blue-600 hover:bg-blue-500'} text-white rounded font-medium transition-colors shadow-lg shadow-blue-900/20`}
+                        title={module === '2d-audio' ? t.studio.controls.generate : "Send Message"}
+                    >
+                        {module === '2d-audio' ? (
+                            (isGenerating || isPlaying) ? (
+                                 <><SquareIcon size={12} fill="currentColor" /><span>{t.studio.controls.cancelVoice}</span></>
+                            ) : (
+                                 <><Play size={12} fill="currentColor" /><span>{t.studio.controls.generate}</span></>
+                            )
+                        ) : (
+                            <><Send size={12} /><span>发送</span></>
+                        )}
+                    </button>
+
+                    {/* Start Reading Button */}
+                    <button 
+                        onClick={handleGenerate}
+                        disabled={isGenerating || isPlaying}
+                        className="flex items-center gap-1.5 px-3 py-1 bg-green-600 hover:bg-green-500 text-white rounded font-medium transition-colors shadow-lg shadow-green-900/20"
+                        title="Start Generation"
+                    >
+                        <Play size={12} fill="currentColor" />
+                        <span>开始朗读</span>
+                    </button>
+                </div>
             </div>
 
         </div>
@@ -1773,17 +1821,59 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
                              <Mic size={14} />
                              {t.studio.controls.voice}
                           </div>
-                          <SearchBar placeholder={t.studio.controls.searchVoice} className="mb-0" />
                       </div>
 
                       <div className="flex-1 overflow-y-auto custom-scrollbar px-5 pb-5 pt-2 space-y-6">
+                          {/* 1. Language */}
                           <VoiceDropdown 
                               label={t.studio.controls.voiceLangLabel} 
                               value={voiceConfig.lang} 
                               options={VOICE_LANGUAGES} 
                               onChange={(v) => handleVoiceConfigChange(prev => ({...prev, lang: v}))} 
                           />
+
+                          {/* 2. Emotion */}
+                          <div className="space-y-2">
+                              <label className="text-xs font-bold text-white/60 pl-1">{t.studio.controls.voiceEmotionLabel}</label>
+                              <div className="flex gap-4 overflow-x-auto pb-4 pt-1 px-1 custom-scrollbar snap-x">
+                                  {VOICE_EMOTIONS.map((emotion) => (
+                                      <button
+                                          key={emotion.id}
+                                          onClick={() => handleVoiceConfigChange(prev => ({...prev, emotion: emotion.id}))}
+                                          className="flex flex-col items-center gap-2 shrink-0 group snap-start"
+                                      >
+                                          <div className={`w-14 h-14 rounded-full p-0.5 transition-all duration-300 ${
+                                              voiceConfig.emotion === emotion.id 
+                                              ? 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] scale-105' 
+                                              : 'bg-transparent group-hover:bg-white/20'
+                                          }`}>
+                                              <div className="w-full h-full rounded-full overflow-hidden relative">
+                                                  <img 
+                                                      src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop" 
+                                                      alt={emotion.name}
+                                                      className={`w-full h-full object-cover transition-transform duration-500 ${
+                                                          voiceConfig.emotion === emotion.id ? 'scale-110' : 'grayscale-[0.5] group-hover:grayscale-0'
+                                                      }`}
+                                                  />
+                                              </div>
+                                          </div>
+                                          <span className={`text-[10px] font-medium tracking-wide transition-colors duration-200 ${
+                                              voiceConfig.emotion === emotion.id ? 'text-blue-400' : 'text-white/50 group-hover:text-white'
+                                          }`}>
+                                              {emotion.name}
+                                          </span>
+                                      </button>
+                                  ))}
+                              </div>
+                          </div>
                           
+                          {/* 3. Search Bar */}
+                          <div>
+                              <label className="text-xs font-bold text-white/60 pl-1 block mb-2">{t.studio.controls.voiceSelectLabel}</label>
+                              <SearchBar placeholder={t.studio.controls.searchVoice} className="mb-0" />
+                          </div>
+
+                          {/* 4. Gender Filter */}
                           <div className="space-y-1.5">
                               <label className="text-xs font-bold text-white/60 pl-1">{t.studio.controls.voiceGenderLabel}</label>
                               <div className="flex bg-[#111] p-1 rounded-lg border border-white/10">
@@ -1799,8 +1889,8 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
                               </div>
                           </div>
 
+                          {/* 5. Voice List */}
                           <div className="space-y-1.5">
-                              <label className="text-xs font-bold text-white/60 pl-1">{t.studio.controls.voiceSelectLabel}</label>
                               <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
                                   {filteredVoices.map(voice => (
                                       <div 
@@ -1837,39 +1927,6 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
                               </div>
                           </div>
                           
-                          <div className="space-y-2 pt-2">
-                              <label className="text-xs font-bold text-white/60 pl-1">{t.studio.controls.voiceEmotionLabel}</label>
-                              <div className="flex gap-4 overflow-x-auto pb-4 pt-1 px-1 custom-scrollbar snap-x">
-                                  {VOICE_EMOTIONS.map((emotion) => (
-                                      <button
-                                          key={emotion.id}
-                                          onClick={() => handleVoiceConfigChange(prev => ({...prev, emotion: emotion.id}))}
-                                          className="flex flex-col items-center gap-2 shrink-0 group snap-start"
-                                      >
-                                          <div className={`w-14 h-14 rounded-full p-0.5 transition-all duration-300 ${
-                                              voiceConfig.emotion === emotion.id 
-                                              ? 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] scale-105' 
-                                              : 'bg-transparent group-hover:bg-white/20'
-                                          }`}>
-                                              <div className="w-full h-full rounded-full overflow-hidden relative">
-                                                  <img 
-                                                      src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop" 
-                                                      alt={emotion.name}
-                                                      className={`w-full h-full object-cover transition-transform duration-500 ${
-                                                          voiceConfig.emotion === emotion.id ? 'scale-110' : 'grayscale-[0.5] group-hover:grayscale-0'
-                                                      }`}
-                                                  />
-                                              </div>
-                                          </div>
-                                          <span className={`text-[10px] font-medium tracking-wide transition-colors duration-200 ${
-                                              voiceConfig.emotion === emotion.id ? 'text-blue-400' : 'text-white/50 group-hover:text-white'
-                                          }`}>
-                                              {emotion.name}
-                                          </span>
-                                      </button>
-                                  ))}
-                              </div>
-                          </div>
                       </div>
                   </div>
                 )}
