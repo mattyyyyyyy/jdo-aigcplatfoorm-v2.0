@@ -68,7 +68,13 @@ const VOICE_PRESETS = [
   { id: 'playful_girl', name: '俏皮女童', gender: 'female', color: '#fb7185' },
   { id: 'sunny_boy', name: '阳光少年', gender: 'male', color: '#facc15' },
   { id: 'artsy_guy', name: '文艺小哥', gender: 'male', color: '#60a5fa' },
-  { id: 'obedient_shota', name: '乖巧正太', gender: 'male', color: '#4ade80' }
+  { id: 'obedient_shota', name: '乖巧正太', gender: 'male', color: '#4ade80' },
+  { id: 'news_anchor', name: '新闻播报员', gender: 'male', color: '#3b82f6' },
+  { id: 'customer_service_zhang', name: '客服小张', gender: 'female', color: '#ec4899' },
+  { id: 'anime_girl', name: '动漫少女', gender: 'female', color: '#d946ef' },
+  { id: 'ancient_sister', name: '古装姐', gender: 'female', color: '#8b5cf6' },
+  { id: 'teacher_zhang', name: '小张老师', gender: 'male', color: '#10b981' },
+  { id: 'guide_jin', name: '导购小金', gender: 'male', color: '#f59e0b' }
 ];
 
 const VOICE_EMOTIONS = [
@@ -517,6 +523,10 @@ const ASSETS: Asset[] = [
   { id: 't1', name: '新闻主播', type: 'template', previewColor: '#3b82f6', src: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=600&auto=format&fit=crop' },
   { id: 't2', name: '英语老师', type: 'template', previewColor: '#10b981', src: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=600&auto=format&fit=crop' },
   { id: 't3', name: '虚拟偶像', type: 'template', previewColor: '#ec4899', src: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=600&auto=format&fit=crop' },
+  { id: 't4', name: '专业医生', type: 'template', previewColor: '#0ea5e9', src: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=600&auto=format&fit=crop' },
+  { id: 't5', name: '金牌主持', type: 'template', previewColor: '#f59e0b', src: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=600&auto=format&fit=crop' },
+  { id: 't6', name: '可爱萌娃', type: 'template', previewColor: '#fbbf24', src: 'https://images.unsplash.com/photo-1471286174890-9c112ffca5b4?q=80&w=600&auto=format&fit=crop' },
+  { id: 't7', name: '人气网红', type: 'template', previewColor: '#8b5cf6', src: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=600&auto=format&fit=crop' },
 ];
 
 const VoiceDropdown = ({ label, value, options, onChange }: { label: string; value: string; options: { id: string; name: string; }[]; onChange: (v: string) => void; }) => (
@@ -922,7 +932,7 @@ export default function Studio({ module, onChangeModule, lang, toggleLanguage, o
   );
 
   // Dynamic visualizer top offset to prevent blocking
-  // Card base height is 500. Center is 250.
+  // Card base height 500. Center is 250.
   // Visualizer is at top-full of unscaled container.
   // If scale increases, bottom of card moves down by (scale - 1) * 250.
   const visualizerOffset = canvasTransform.scale;
