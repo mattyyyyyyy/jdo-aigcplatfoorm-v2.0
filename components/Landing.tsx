@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, memo, useMemo } from 'react';
-import { Mic, MessageSquare, Box, Globe, Ghost, ChevronDown, Check } from 'lucide-react';
+import { Mic, MessageSquare, Box, Globe, Ghost, ChevronDown, Check, Palette } from 'lucide-react';
 import { AppModule } from '../types';
 import GlassCard3D from './GlassCard3D';
 
@@ -7,6 +7,8 @@ interface LandingProps {
   onSelectModule: (module: AppModule) => void;
   lang: 'zh' | 'en';
   setLang: (lang: 'zh' | 'en') => void;
+  bgMode: 'default' | 'video';
+  onToggleBgMode: () => void;
   t: any;
 }
 
@@ -172,7 +174,7 @@ const FeatureCard: React.FC<FeatureCardProps> = memo(({
   );
 });
 
-export default function Landing({ onSelectModule, lang, setLang, t }: LandingProps) {
+export default function Landing({ onSelectModule, lang, setLang, bgMode, onToggleBgMode, t }: LandingProps) {
   const [animData, setAnimData] = useState<{
     module: AppModule;
     rect: DOMRect;
@@ -364,37 +366,52 @@ export default function Landing({ onSelectModule, lang, setLang, t }: LandingPro
            <JDOLogo />
         </div>
         
-        <div className="relative z-50">
+        <div className="relative z-50 flex items-center gap-4">
+          {/* Theme Toggle Button */}
           <button 
-            onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
-            className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white cursor-pointer transition-colors opacity-80 hover:opacity-100 select-none bg-white/5 border border-white/10 px-3 py-1.5 rounded-full"
+            onClick={onToggleBgMode}
+            className={`flex items-center justify-center p-2 rounded-full border transition-all duration-300 ${
+               bgMode === 'video' 
+               ? 'bg-purple-500/20 border-purple-500 text-purple-200 shadow-[0_0_10px_rgba(168,85,247,0.3)]' 
+               : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:text-white'
+            }`}
+            title="Toggle Theme"
           >
-            <Globe size={16} />
-            <span>{t.navLang}</span>
-            <ChevronDown size={14} className={`transition-transform duration-200 ${isLangMenuOpen ? 'rotate-180' : ''}`} />
+             <Palette size={16} />
           </button>
-          
-          {isLangMenuOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)} />
-              <div className="absolute top-full right-0 mt-2 w-32 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100 p-1">
-                <button
-                  onClick={() => { setLang('zh'); setIsLangMenuOpen(false); }}
-                  className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left rounded-lg transition-colors ${lang === 'zh' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
-                >
-                  简体中文
-                  {lang === 'zh' && <Check size={12} className="text-green-400" />}
-                </button>
-                <button
-                  onClick={() => { setLang('en'); setIsLangMenuOpen(false); }}
-                  className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left rounded-lg transition-colors ${lang === 'en' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
-                >
-                  English
-                  {lang === 'en' && <Check size={12} className="text-green-400" />}
-                </button>
-              </div>
-            </>
-          )}
+
+          <div className="relative">
+            <button 
+                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white cursor-pointer transition-colors opacity-80 hover:opacity-100 select-none bg-white/5 border border-white/10 px-3 py-1.5 rounded-full"
+            >
+                <Globe size={16} />
+                <span>{t.navLang}</span>
+                <ChevronDown size={14} className={`transition-transform duration-200 ${isLangMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {isLangMenuOpen && (
+                <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)} />
+                <div className="absolute top-full right-0 mt-2 w-32 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100 p-1">
+                    <button
+                    onClick={() => { setLang('zh'); setIsLangMenuOpen(false); }}
+                    className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left rounded-lg transition-colors ${lang === 'zh' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    >
+                    简体中文
+                    {lang === 'zh' && <Check size={12} className="text-green-400" />}
+                    </button>
+                    <button
+                    onClick={() => { setLang('en'); setIsLangMenuOpen(false); }}
+                    className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left rounded-lg transition-colors ${lang === 'en' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    >
+                    English
+                    {lang === 'en' && <Check size={12} className="text-green-400" />}
+                    </button>
+                </div>
+                </>
+            )}
+          </div>
         </div>
       </nav>
 

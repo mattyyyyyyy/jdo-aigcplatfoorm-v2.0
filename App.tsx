@@ -170,6 +170,7 @@ export default function App() {
   // Global State
   const [lang, setLang] = useState<'zh' | 'en'>('zh');
   const [currentModule, setCurrentModule] = useState<AppModule | null>(null);
+  const [bgMode, setBgMode] = useState<'default' | 'video'>('default');
   
   // Persist saved assets across modules
   const [savedAssets, setSavedAssets] = useState<Asset[]>([]);
@@ -184,8 +185,19 @@ export default function App() {
 
       {/* 1. Global Background Layer */}
       <div className="absolute inset-0 z-0">
-        {/* Render ColorBends with default internal values for maximum performance */}
-        <ColorBends />
+        {bgMode === 'default' ? (
+          /* Render ColorBends with default internal values for maximum performance */
+          <ColorBends />
+        ) : (
+          <video 
+            src="https://res.cloudinary.com/djmxoehe9/video/upload/v1765732274/jimeng-2025-12-15-5742-%E5%A4%B4%E5%8F%91%E6%BC%82%E6%B5%AE_%E7%9C%BC%E7%9D%9B%E9%97%AD%E4%B8%8A%E7%9D%81%E5%BC%80_%E5%98%B4%E5%B7%B4%E5%BE%AE%E5%8A%A8_%E8%83%8C%E6%99%AF%E7%9A%84%E6%98%9F%E7%B3%BB%E5%B1%B1%E4%B8%9C_%E5%A4%B4%E5%8F%91%E4%B8%8A%E4%B8%8E%E9%A1%B9%E9%93%BE%E4%B8%8A%E7%9A%84%E5%85%89%E6%BA%90%E5%8F%91%E5%85%89%E6%95%A3%E5%8F%91%E5%87%BA..._zfidoi.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover transition-opacity duration-1000"
+          />
+        )}
         {/* Dark overlay for text readability - Pure black base with transparency */}
         <div className={`absolute inset-0 transition-colors duration-700 pointer-events-none ${currentModule ? 'bg-black/60' : 'bg-black/30'}`} />
       </div>
@@ -209,6 +221,8 @@ export default function App() {
             onSelectModule={setCurrentModule} 
             lang={lang}
             setLang={setLang}
+            bgMode={bgMode}
+            onToggleBgMode={() => setBgMode(prev => prev === 'default' ? 'video' : 'default')}
             t={t}
           />
         )}
