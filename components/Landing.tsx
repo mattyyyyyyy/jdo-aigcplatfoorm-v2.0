@@ -192,10 +192,17 @@ export default function Landing({ onSelectModule, lang, setLang, t }: LandingPro
       // Debounce resize
       clearTimeout(timeoutId);
       timeoutId = window.setTimeout(() => {
-        const baseWidth = 1400; 
-        const scale = Math.min(1, Math.max(0.6, window.innerWidth / baseWidth));
-        setDeckScale(scale);
-      }, 100);
+        // Base dimensions to calculate relative scale
+        const baseWidth = 1536; 
+        const baseHeight = 864;
+        
+        const widthScale = Math.min(1, Math.max(0.55, window.innerWidth / baseWidth));
+        const heightScale = Math.min(1, Math.max(0.55, window.innerHeight / baseHeight));
+        
+        // Use the smaller scale to ensure it fits in the viewport without overlapping
+        // Bias slightly towards width to keep cards readable
+        setDeckScale(Math.min(widthScale, heightScale));
+      }, 50);
     };
     handleResize(); // Init
     window.addEventListener('resize', handleResize);
@@ -321,7 +328,7 @@ export default function Landing({ onSelectModule, lang, setLang, t }: LandingPro
   const selectedFeature = getSelectedMedia(animData?.module as string);
 
   return (
-    <div className="relative z-10 w-full h-full flex flex-col overflow-y-auto overflow-x-hidden">
+    <div className="relative z-10 w-full h-full flex flex-col overflow-hidden">
       <style>{`
         @keyframes white-glow-pulse {
           0%, 100% { 
@@ -351,7 +358,8 @@ export default function Landing({ onSelectModule, lang, setLang, t }: LandingPro
         }
       `}</style>
 
-      <nav className="flex-none flex justify-between items-center px-6 py-6 md:px-10">
+      {/* Nav positioned absolutely to not affect flex flow layout calculations */}
+      <nav className="absolute top-0 left-0 right-0 z-50 flex justify-between items-center px-6 py-6 md:px-10">
         <div className="flex items-center gap-3 select-none">
            <JDOLogo />
         </div>
@@ -390,36 +398,47 @@ export default function Landing({ onSelectModule, lang, setLang, t }: LandingPro
         </div>
       </nav>
 
-      <main className="flex-shrink-0 flex flex-col items-center px-4 relative pt-16 md:pt-20 pb-[30px]">
-        {/* Title Container - Adjusted margins for balance */}
-        <div className="mb-6 flex items-center justify-center min-h-[120px] md:min-h-[160px]">
-           <Typewriter phrases={typewriterPhrases} />
-        </div>
+      {/* Main Content with viewport-relative spacing */}
+      <main className="w-full h-full flex flex-col items-center relative">
         
-        {/* Subtitle with Glowing White Animation - Reduced bottom margin to pull cards up */}
-        <p className="text-lg md:text-xl text-white text-center mb-10 font-light max-w-2xl leading-relaxed tracking-wide animate-white-glow">
-          {t.heroSubtitle}
-        </p>
+        {/* Title & Subtitle Section */}
+        {/* Positioned around 22% down from the top viewport edge */}
+        <div className="flex flex-col items-center mt-[22vh] md:mt-[22vh] z-20">
+            {/* Title Container */}
+            <div className="flex items-center justify-center min-h-[80px] md:min-h-[120px]">
+               <Typewriter phrases={typewriterPhrases} />
+            </div>
+            
+            {/* Subtitle */}
+            <p className="text-base md:text-xl text-white text-center mt-4 md:mt-6 font-light max-w-2xl leading-relaxed tracking-widest animate-white-glow opacity-90">
+              {t.heroSubtitle}
+            </p>
+        </div>
 
-        {/* Interactive Card Deck with Scale Transform */}
+        {/* Interactive Card Deck Section */}
+        {/* Positioned with flexible margin from title section to adapt to height */}
         <div 
-           className={`relative flex items-center justify-center h-[450px] w-full max-w-6xl perspective-1000 animate-in fade-in zoom-in-95 duration-1000 delay-200 ${animData ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}
-           style={{ transform: `scale(${deckScale})`, transformOrigin: 'top center' }}
+           className={`relative flex-1 w-full flex items-center justify-center mt-0 max-w-6xl perspective-1000 animate-in fade-in zoom-in-95 duration-1000 delay-200 ${animData ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}
         >
-           {featureList.map((feature, index) => (
-              <FeatureCard 
-                key={feature.id}
-                id={feature.id}
-                type3D={feature.type3D}
-                title={feature.title}
-                video={feature.video}
-                style={getCardStyle(index)}
-                isHovered={hoveredIndex === index}
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
-                onClick={(e) => handleModuleSelect(feature.id, feature.title, e)}
-              />
-           ))}
+           <div 
+             className="relative h-[450px] w-full flex justify-center items-center"
+             style={{ transform: `scale(${deckScale})`, transformOrigin: 'center center' }}
+           >
+             {featureList.map((feature, index) => (
+                <FeatureCard 
+                  key={feature.id}
+                  id={feature.id}
+                  type3D={feature.type3D}
+                  title={feature.title}
+                  video={feature.video}
+                  style={getCardStyle(index)}
+                  isHovered={hoveredIndex === index}
+                  onMouseEnter={() => setHoveredIndex(index)}
+                  onMouseLeave={() => setHoveredIndex(null)}
+                  onClick={(e) => handleModuleSelect(feature.id, feature.title, e)}
+                />
+             ))}
+           </div>
         </div>
       </main>
 

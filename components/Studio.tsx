@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, useLayoutEffect } from 'react';
 import { 
   Mic, 
   Phone, 
@@ -695,11 +695,11 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
   // Toolbar State
   const [isOverflowOpen, setIsOverflowOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const [visibleItemCount, setVisibleItemCount] = useState(TOOLBAR_ITEMS.length);
+  const toolbarRef = useRef<HTMLDivElement>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const VISIBLE_TOOLBAR_COUNT = 12;
 
   const featureTitle = useMemo(() => {
     switch (module) {
@@ -710,6 +710,29 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
         default: return 'Studio';
     }
   }, [module, t.features]);
+
+  // Dynamic Toolbar Logic
+  useLayoutEffect(() => {
+    const updateLayout = () => {
+        if (!toolbarRef.current) return;
+        const width = toolbarRef.current.clientWidth;
+        // Item: min-w-[50px] + gap-1 (4px) = 54px. 
+        // Using 55px to be safe and account for potential sub-pixel rendering or border interactions.
+        const count = Math.floor(width / 55);
+        setVisibleItemCount(Math.max(1, Math.min(TOOLBAR_ITEMS.length, count)));
+    };
+
+    updateLayout();
+    
+    const observer = new ResizeObserver(updateLayout);
+    if (toolbarRef.current) {
+        observer.observe(toolbarRef.current);
+    }
+    return () => observer.disconnect();
+  }, []);
+
+  const visibleItems = TOOLBAR_ITEMS.slice(0, visibleItemCount);
+  const overflowItems = TOOLBAR_ITEMS.slice(visibleItemCount);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -784,6 +807,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
   };
 
   const handleCanvasTransform = (type: 'zoomIn' | 'zoomOut') => {
+      if (checkCallActive()) return;
       setCanvasTransform(prev => {
           switch(type) {
               case 'zoomIn': return { ...prev, scale: Math.min(prev.scale + 0.1, 2.0) };
@@ -794,11 +818,13 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
   };
 
   const handleResetRotation = () => {
+      if (checkCallActive()) return;
       setCanvasTransform(prev => ({ ...prev, rotation: 0 }));
   };
 
   const startRotation = (direction: 'left' | 'right', e?: React.MouseEvent | React.TouchEvent) => {
     if (e) e.preventDefault();
+    if (checkCallActive()) return;
     stopRotation();
     setIsRotating(true);
     const rotate = () => {
@@ -861,6 +887,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
   };
 
   const handleSendMessage = () => {
+    if (checkCallActive()) return;
     if (!inputValue.trim()) return;
     const newMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -892,6 +919,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
   };
 
   const toggleVoiceRecording = () => {
+    if (checkCallActive()) return;
     if (isVoiceRecording) finishVoiceRecording();
     else setIsVoiceRecording(true);
   };
@@ -899,6 +927,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
   const cancelVoiceRecording = () => setIsVoiceRecording(false);
 
   const handleSaveState = () => {
+    if (checkCallActive()) return;
     if (module === '3d-avatar') {
       const currentBase = ASSETS.find(a => a.id === baseModel);
       const newSnapshot: Asset = {
@@ -960,6 +989,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
   };
 
   const handleGenerate = () => {
+    if (checkCallActive()) return;
     if (isGenerating || isPlaying) {
         handleStop();
         return;
@@ -1028,6 +1058,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
   };
 
   const handleToolbarClick = (id: string) => {
+    if (checkCallActive()) return;
     if (id === 'import') {
       if (module === '3d-avatar' || module === '2d-audio') {
         setIsImportMenuOpen(!isImportMenuOpen);
@@ -1101,7 +1132,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
     <div className="absolute top-4 left-4 z-50">
         <div className="relative">
             <button 
-                onClick={() => setShowRatioMenu(!showRatioMenu)}
+                onClick={() => !checkCallActive() && setShowRatioMenu(!showRatioMenu)}
                 className="flex items-center gap-2 px-3 py-2 bg-black/60 backdrop-blur-md border border-white/10 rounded-lg text-xs font-medium text-white hover:bg-white/10 transition-colors"
             >
                 <Monitor size={14} />
@@ -1471,7 +1502,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleUpload} />
 
       {/* Top Bar */}
-      <div className={`h-16 border-b border-white/10 bg-black/50 backdrop-blur-md flex items-center justify-between px-6 z-30 shrink-0 transition-all duration-700 delay-100 ${isMounted ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'}`}>
+      <div className={`h-16 border-b border-white/10 bg-black/50 backdrop-blur-md flex items-center justify-between px-6 z-50 shrink-0 transition-all duration-700 delay-100 ${isMounted ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'}`}>
          <div className="flex items-center gap-4">
             <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/70 hover:text-white">
               <ArrowLeft size={18} />
@@ -1479,7 +1510,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
             
             <div className="relative">
                <button 
-                 onClick={() => setIsModuleMenuOpen(!isModuleMenuOpen)}
+                 onClick={() => !checkCallActive() && setIsModuleMenuOpen(!isModuleMenuOpen)}
                  className="flex items-center gap-2 text-base font-bold text-white hover:text-white/80 transition-colors group tracking-wide"
                >
                  {featureTitle}
@@ -1519,7 +1550,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
          <div className="flex items-center gap-4 relative z-50">
             <div className="relative">
               <button 
-                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                onClick={() => !checkCallActive() && setIsLangMenuOpen(!isLangMenuOpen)}
                 className="flex items-center gap-2 text-xs text-white/60 hover:text-white transition-colors bg-white/5 px-2 py-1 rounded-full border border-white/5"
               >
                   <Globe size={12} />
@@ -1551,7 +1582,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
             </div>
 
             <button 
-              onClick={handleSaveState}
+              onClick={() => { if(!checkCallActive()) handleSaveState(); }}
               className="px-4 py-1.5 bg-white/5 hover:bg-white/10 rounded text-xs font-medium text-white transition-colors border border-white/5 flex items-center gap-2"
             >
               <Save size={14} />
@@ -1632,8 +1663,8 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                       </div>
                     )}
 
-                    <div className="flex-1 flex items-center gap-1 overflow-hidden h-full">
-                        {TOOLBAR_ITEMS.slice(0, VISIBLE_TOOLBAR_COUNT).map((item) => {
+                    <div ref={toolbarRef} className="flex-1 flex items-center gap-1 overflow-hidden h-full">
+                        {visibleItems.map((item) => {
                             let displayLabel = item.label;
                             if (item.id === 'import') {
                                 if (module === '2d-audio') displayLabel = '参考视频';
@@ -1654,34 +1685,40 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                     </div>
 
                     {/* Expand/Collapse Button (Overflow Trigger) */}
-                    <div className="h-full flex items-center pl-2 border-l border-white/5 relative">
-                        <button 
-                           onClick={() => setIsOverflowOpen(!isOverflowOpen)}
-                           className={`p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors ${isOverflowOpen ? 'bg-white/10 text-white' : ''}`}
-                        >
-                            <ChevronUp size={20} className={`transition-transform duration-300 ${isOverflowOpen ? 'rotate-180' : ''}`} />
-                        </button>
+                    {overflowItems.length > 0 && (
+                        <div className="h-full flex items-center pl-2 border-l border-white/5 relative">
+                            <button 
+                                onClick={() => !checkCallActive() && setIsOverflowOpen(!isOverflowOpen)}
+                                className={`p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors ${isOverflowOpen ? 'bg-white/10 text-white' : ''}`}
+                            >
+                                <ChevronUp size={20} className={`transition-transform duration-300 ${isOverflowOpen ? 'rotate-180' : ''}`} />
+                            </button>
 
-                        {/* Overflow Menu */}
-                        {isOverflowOpen && (
-                            <div className="absolute bottom-full right-0 mb-2 min-w-[180px] bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl p-2 grid grid-cols-3 gap-1 animate-in slide-in-from-bottom-2 fade-in z-50">
-                                {TOOLBAR_ITEMS.slice(VISIBLE_TOOLBAR_COUNT).map((item) => {
-                                    let displayLabel = item.label;
-                                    return (
-                                        <button
-                                            key={item.id}
-                                            onClick={() => { handleToolbarClick(item.id); setIsOverflowOpen(false); }}
-                                            className="flex flex-col items-center justify-center p-2 hover:bg-white/5 rounded-lg gap-1 transition-colors text-white/60 hover:text-white group"
-                                            title={displayLabel}
-                                        >
-                                            <item.icon size={16} className="text-blue-400/80 group-hover:text-blue-400 transition-colors" />
-                                            <span className="text-[9px] text-center font-medium truncate w-full">{displayLabel}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
+                            {/* Overflow Menu */}
+                            {isOverflowOpen && (
+                                <div className="absolute bottom-full right-0 mb-2 min-w-[180px] bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl p-2 grid grid-cols-3 gap-1 animate-in slide-in-from-bottom-2 fade-in z-50">
+                                    {overflowItems.map((item) => {
+                                        let displayLabel = item.label;
+                                        if (item.id === 'import') {
+                                            if (module === '2d-audio') displayLabel = '参考视频';
+                                            else if (module === '3d-avatar') displayLabel = '导入模型';
+                                        }
+                                        return (
+                                            <button
+                                                key={item.id}
+                                                onClick={() => { handleToolbarClick(item.id); setIsOverflowOpen(false); }}
+                                                className="flex flex-col items-center justify-center p-2 hover:bg-white/5 rounded-lg gap-1 transition-colors text-white/60 hover:text-white group"
+                                                title={displayLabel}
+                                            >
+                                                <item.icon size={16} className="text-blue-400/80 group-hover:text-blue-400 transition-colors" />
+                                                <span className="text-[9px] text-center font-medium truncate w-full">{displayLabel}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Import Popover Menu */}
@@ -1696,7 +1733,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                             <button onClick={() => setIsImportMenuOpen(false)} className="hover:text-white"><X size={14}/></button>
                         </div>
                         <button 
-                            onClick={() => fileInputRef.current?.click()}
+                            onClick={() => !checkCallActive() && fileInputRef.current?.click()}
                             className="flex items-center justify-center gap-2 w-full py-3 bg-white/5 hover:bg-white/10 border border-white/5 border-dashed rounded-lg text-xs text-white/70 transition-colors"
                         >
                             <Upload size={14} />
@@ -1742,6 +1779,8 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                     <textarea
                         ref={textareaRef}
                         value={inputValue}
+                        onClick={() => checkCallActive()}
+                        readOnly={isCallActive}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyDown={(e) => {
                             if (module !== '2d-audio' && e.key === 'Enter' && !e.shiftKey) {
@@ -1750,7 +1789,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                             }
                         }}
                         placeholder={module === '2d-audio' ? t.studio.controls.drivePlaceholder : t.studio.controls.chatPlaceholder}
-                        className={`w-full h-full bg-transparent border-none text-sm text-gray-200 placeholder:text-white/10 focus:outline-none resize-none custom-scrollbar leading-relaxed font-light transition-all duration-500 ${isCallActive ? 'opacity-10 blur-sm pointer-events-none' : ''}`}
+                        className={`w-full h-full bg-transparent border-none text-sm text-gray-200 placeholder:text-white/10 focus:outline-none resize-none custom-scrollbar leading-relaxed font-light transition-all duration-500 ${isCallActive ? 'opacity-10 blur-sm' : ''}`}
                         spellCheck={false}
                     />
                 </div>
@@ -1758,7 +1797,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                 {/* Bottom Status Bar */}
                 <div className="h-8 border-t border-white/5 flex justify-end items-center px-4 gap-2 text-[10px] text-white/30 bg-[#111] select-none relative z-20">
                     <button 
-                        onClick={() => setInputValue('')}
+                        onClick={() => !checkCallActive() && setInputValue('')}
                         className="hover:text-white flex items-center gap-1 transition-colors px-2 py-1 hover:bg-white/5 rounded mr-auto"
                         title="Clear"
                     >
@@ -1775,33 +1814,34 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                         <span className="hidden sm:inline">语音输入</span>
                     </button>
 
-                    {/* Send Button */}
-                    <button 
-                        onClick={module === '2d-audio' ? handleGenerate : handleSendMessage}
-                        disabled={module === '2d-audio' && (isGenerating || isPlaying)} 
-                        className={`flex items-center gap-1.5 px-3 py-1 ${module === '2d-audio' && (isGenerating || isPlaying) ? 'bg-gray-600' : 'bg-blue-600 hover:bg-blue-500'} text-white rounded font-medium transition-colors shadow-lg shadow-blue-900/20`}
-                        title={module === '2d-audio' ? t.studio.controls.generate : "Send Message"}
-                    >
-                        {module === '2d-audio' ? (
-                            (isGenerating || isPlaying) ? (
-                                 <><SquareIcon size={12} fill="currentColor" /><span>{t.studio.controls.cancelVoice}</span></>
-                            ) : (
-                                 <><Play size={12} fill="currentColor" /><span>{t.studio.controls.generate}</span></>
-                            )
-                        ) : (
-                            <><Send size={12} /><span>发送</span></>
-                        )}
-                    </button>
+                    {/* Send Button - Hidden for 2d-audio */}
+                    {module !== '2d-audio' && (
+                        <button 
+                            onClick={() => {
+                                if(checkCallActive()) return;
+                                handleSendMessage();
+                            }}
+                            className={`flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded font-medium transition-colors shadow-lg shadow-blue-900/20`}
+                            title="Send Message"
+                        >
+                            <Send size={12} /><span>发送</span>
+                        </button>
+                    )}
 
-                    {/* Start Reading Button */}
+                    {/* Start Reading Button / Generate Button for 2d-audio */}
                     <button 
-                        onClick={handleGenerate}
-                        disabled={isGenerating || isPlaying}
-                        className="flex items-center gap-1.5 px-3 py-1 bg-green-600 hover:bg-green-500 text-white rounded font-medium transition-colors shadow-lg shadow-green-900/20"
-                        title="Start Generation"
+                        onClick={() => {
+                             if(checkCallActive()) return;
+                             handleGenerate();
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1 ${(module === '2d-audio' && (isGenerating || isPlaying)) ? 'bg-gray-600 hover:bg-gray-700' : 'bg-green-600 hover:bg-green-500'} text-white rounded font-medium transition-colors shadow-lg shadow-green-900/20`}
+                        title={module === '2d-audio' ? t.studio.controls.generate : "Start Generation"}
                     >
-                        <Play size={12} fill="currentColor" />
-                        <span>开始朗读</span>
+                        {(module === '2d-audio' && (isGenerating || isPlaying)) ? (
+                            <><SquareIcon size={12} fill="currentColor" /><span>{t.studio.controls.cancelVoice}</span></>
+                        ) : (
+                            <><Play size={12} fill="currentColor" /><span>开始朗读</span></>
+                        )}
                     </button>
                 </div>
             </div>
@@ -1944,7 +1984,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                       {/* Sub-tabs for ALL modules (2D & 3D) */}
                       <div className="shrink-0 px-5 pt-3 pb-2 border-b border-white/10 overflow-x-auto no-scrollbar flex gap-4">
                            {get3DTabs().map(tab => (
-                             <button key={tab} onClick={() => setActiveAvatarTab(tab)} className={`pb-2 text-xs font-bold uppercase transition-all border-b-2 whitespace-nowrap ${activeAvatarTab === tab ? 'text-white border-white' : 'text-white/40 border-transparent hover:text-white'}`}>
+                             <button key={tab} onClick={() => !checkCallActive() && setActiveAvatarTab(tab)} className={`pb-2 text-xs font-bold uppercase transition-all border-b-2 whitespace-nowrap ${activeAvatarTab === tab ? 'text-white border-white' : 'text-white/40 border-transparent hover:text-white'}`}>
                                {tab === 'all' ? (lang === 'zh' ? '全部' : 'All') : t.studio.assets.tabs[tab]}
                              </button>
                            ))}
@@ -2013,7 +2053,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                               ].map((cat) => (
                                  <button 
                                     key={cat.id}
-                                    onClick={() => setAccessoryFilter(cat.id as any)}
+                                    onClick={() => !checkCallActive() && setAccessoryFilter(cat.id as any)}
                                     className={`px-2.5 py-1.5 rounded-full text-[10px] font-medium border transition-all flex items-center gap-1 whitespace-nowrap ${
                                       accessoryFilter === cat.id 
                                       ? 'bg-white text-black border-white' 
@@ -2075,7 +2115,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                               {ACTIONS.filter(act => !searchQuery || act.name.toLowerCase().includes(searchQuery.toLowerCase())).map(action => (
                                  <button 
                                     key={action.id}
-                                    onClick={() => console.log('Action triggered:', action.name)}
+                                    onClick={() => !checkCallActive() && console.log('Action triggered:', action.name)}
                                     className="p-4 bg-[#111] border border-white/5 rounded-xl hover:border-white/30 hover:bg-white/5 transition-all flex flex-col items-center gap-2 group"
                                  >
                                     <span className="text-2xl group-hover:scale-110 transition-transform duration-300">{action.icon}</span>
@@ -2101,7 +2141,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                               {BACKGROUNDS.map(bg => (
                                  <button 
                                     key={bg.id}
-                                    onClick={() => setSelectedBackground(bg)}
+                                    onClick={() => !checkCallActive() && setSelectedBackground(bg)}
                                     className={`relative aspect-[16/9] rounded-xl overflow-hidden border transition-all group ${selectedBackground.id === bg.id ? 'border-white ring-1 ring-white' : 'border-white/10 hover:border-white/40'}`}
                                  >
                                     {bg.type === 'color' ? (
@@ -2175,7 +2215,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
             {/* Vertical Navigation Strip */}
             <div className="w-[60px] border-l border-white/10 bg-black/40 backdrop-blur-md flex flex-col items-center py-6 gap-6 z-30 shadow-2xl">
                 <button 
-                  onClick={() => setActiveRightTab('avatar')}
+                  onClick={() => !checkCallActive() && setActiveRightTab('avatar')}
                   className={`p-3 rounded-xl transition-all duration-300 relative group ${activeRightTab === 'avatar' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
                   title="Avatar Library"
                 >
@@ -2185,7 +2225,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                 
                 {module === '3d-avatar' && (
                   <button 
-                    onClick={() => setActiveRightTab('accessory')}
+                    onClick={() => !checkCallActive() && setActiveRightTab('accessory')}
                     className={`p-3 rounded-xl transition-all duration-300 relative group ${activeRightTab === 'accessory' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
                     title="Accessories"
                   >
@@ -2196,7 +2236,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
 
                 {(module === '2d-avatar' || module === '3d-avatar') && (
                   <button 
-                    onClick={() => setActiveRightTab('action')}
+                    onClick={() => !checkCallActive() && setActiveRightTab('action')}
                     className={`p-3 rounded-xl transition-all duration-300 relative group ${activeRightTab === 'action' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
                     title="Actions"
                   >
@@ -2206,7 +2246,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                 )}
 
                 <button 
-                  onClick={() => setActiveRightTab('background')}
+                  onClick={() => !checkCallActive() && setActiveRightTab('background')}
                   className={`p-3 rounded-xl transition-all duration-300 relative group ${activeRightTab === 'background' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
                   title="Background"
                 >
@@ -2215,7 +2255,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                 </button>
 
                 <button 
-                  onClick={() => setActiveRightTab('voice')}
+                  onClick={() => !checkCallActive() && setActiveRightTab('voice')}
                   className={`p-3 rounded-xl transition-all duration-300 relative group ${activeRightTab === 'voice' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
                   title="Voice Settings"
                 >
@@ -2224,7 +2264,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                 </button>
 
                 <button 
-                  onClick={() => setActiveRightTab('mine')}
+                  onClick={() => !checkCallActive() && setActiveRightTab('mine')}
                   className={`p-3 rounded-xl transition-all duration-300 relative group ${activeRightTab === 'mine' ? 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.3)]' : 'text-white/40 hover:text-white hover:bg-white/10'}`}
                   title="My Assets"
                 >
