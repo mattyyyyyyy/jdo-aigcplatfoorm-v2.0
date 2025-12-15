@@ -705,8 +705,8 @@ export default function Studio({ module, onChangeModule, lang, setLang, bgMode, 
   // Determine theme state for styling
   const isThemeActive = bgMode !== 'default';
   // Helper for asset card image backgrounds to be less transparent when theme is active
-  // Updated: Increased opacity to bg-black/80 for image display areas
-  const cardImageBg = isThemeActive ? 'bg-black/80 group-hover:bg-black/70' : 'bg-white/5 group-hover:bg-white/10';
+  // Updated: Increased opacity to bg-black/90 for stronger visibility against video
+  const cardImageBg = isThemeActive ? 'bg-black/90 group-hover:bg-black/80' : 'bg-white/5 group-hover:bg-white/10';
 
   const featureTitle = useMemo(() => {
     switch (module) {
@@ -1605,8 +1605,8 @@ export default function Studio({ module, onChangeModule, lang, setLang, bgMode, 
         <div className={`flex-1 flex flex-col min-w-0 transition-all duration-700 delay-300 ${isMounted ? 'opacity-100' : 'opacity-0'}`}>
             
             {/* Center Canvas */}
-            {/* Updated Logic: If Theme is active, use bg-black/80 for much darker opacity */}
-            <div className={`flex-1 relative ${isThemeActive ? 'bg-black/80 backdrop-blur-xl' : 'bg-black/10 backdrop-blur-sm'} overflow-hidden flex items-center justify-center transition-colors duration-500`}>
+            {/* Updated Logic: If Theme is active, use bg-black/90 for much darker opacity */}
+            <div className={`flex-1 relative ${isThemeActive ? 'bg-black/90 backdrop-blur-xl' : 'bg-black/10 backdrop-blur-sm'} overflow-hidden flex items-center justify-center transition-colors duration-500`}>
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
                 
                 {module === '3d-avatar' ? render3dCanvas() : render2dCanvas()}

@@ -168,7 +168,7 @@ const TEXT_CONTENT = {
 
 const THEME_URLS = {
   themeA: "https://res.cloudinary.com/djmxoehe9/video/upload/v1765784993/1_fkfmw2.webm",
-  themeB: "https://res.cloudinary.com/djmxoehe9/video/upload/v1765787894/242cc1f464ea6b5febab04be5404f83d_raw_tx8sy2.webm"
+  themeB: "https://res.cloudinary.com/djmxoehe9/video/upload/v1765766122/51f390fb5ae477799e5f3d01c1f023f3_raw_gkd7wh.mp4"
 };
 
 export default function App() {
