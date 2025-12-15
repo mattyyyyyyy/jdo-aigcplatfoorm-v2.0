@@ -167,15 +167,15 @@ const TEXT_CONTENT = {
 };
 
 const THEME_URLS = {
-  themeA: "https://res.cloudinary.com/djmxoehe9/video/upload/v1765784993/1_fkfmw2.webm",
-  themeB: "https://res.cloudinary.com/djmxoehe9/video/upload/v1765766122/51f390fb5ae477799e5f3d01c1f023f3_raw_gkd7wh.mp4"
+  themeA: "https://res.cloudinary.com/djmxoehe9/video/upload/v1765817364/12%E6%9C%8816%E6%97%A5_1_u5zzwh.mp4",
+  themeB: "https://res.cloudinary.com/djmxoehe9/video/upload/v1765811102/kling_20251215_%E5%9B%BE%E7%94%9F%E8%A7%86%E9%A2%91_%E8%83%8C%E6%99%AF%E6%B0%B4%E7%8F%A0%E6%BC%82%E6%B5%AE%E6%97%8B%E8%BD%AC_%E4%BA%BA_4750_0_dxn5rk.mp4"
 };
 
 export default function App() {
   // Global State
   const [lang, setLang] = useState<'zh' | 'en'>('zh');
   const [currentModule, setCurrentModule] = useState<AppModule | null>(null);
-  const [bgMode, setBgMode] = useState<'default' | 'themeA' | 'themeB'>('default');
+  const [bgMode, setBgMode] = useState<'default' | 'themeA' | 'themeB'>('themeA');
   
   // Persist saved assets across modules
   const [savedAssets, setSavedAssets] = useState<Asset[]>([]);

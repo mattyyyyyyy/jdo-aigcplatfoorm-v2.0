@@ -392,18 +392,18 @@ export default function Landing({ onSelectModule, lang, setLang, bgMode, onSetBg
                 <div className="fixed inset-0 z-40" onClick={() => setIsThemeMenuOpen(false)} />
                 <div className="absolute top-full right-0 mt-2 w-32 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100 p-1">
                     <button
-                    onClick={() => { onSetBgMode('default'); setIsThemeMenuOpen(false); }}
-                    className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left rounded-lg transition-colors ${bgMode === 'default' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
-                    >
-                    默认
-                    {bgMode === 'default' && <Check size={12} className="text-green-400" />}
-                    </button>
-                    <button
                     onClick={() => { onSetBgMode('themeA'); setIsThemeMenuOpen(false); }}
                     className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left rounded-lg transition-colors ${bgMode === 'themeA' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
                     >
                     主题 A
                     {bgMode === 'themeA' && <Check size={12} className="text-green-400" />}
+                    </button>
+                    <button
+                    onClick={() => { onSetBgMode('default'); setIsThemeMenuOpen(false); }}
+                    className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left rounded-lg transition-colors ${bgMode === 'default' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    >
+                    默认
+                    {bgMode === 'default' && <Check size={12} className="text-green-400" />}
                     </button>
                     <button
                     onClick={() => { onSetBgMode('themeB'); setIsThemeMenuOpen(false); }}
@@ -467,10 +467,12 @@ export default function Landing({ onSelectModule, lang, setLang, bgMode, onSetBg
                <Typewriter phrases={typewriterPhrases} />
             </div>
             
-            {/* Subtitle */}
-            <p className="text-base md:text-xl text-white text-center mt-4 md:mt-6 font-light max-w-2xl leading-relaxed tracking-widest animate-white-glow opacity-90">
-              {t.heroSubtitle}
-            </p>
+            {/* Subtitle - Hidden when Theme A is active */}
+            {bgMode !== 'themeA' && (
+              <p className="text-base md:text-xl text-white text-center mt-4 md:mt-6 font-light max-w-2xl leading-relaxed tracking-widest animate-white-glow opacity-90">
+                {t.heroSubtitle}
+              </p>
+            )}
         </div>
 
         {/* Interactive Card Deck Section */}
