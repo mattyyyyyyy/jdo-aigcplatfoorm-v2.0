@@ -7,8 +7,8 @@ interface LandingProps {
   onSelectModule: (module: AppModule) => void;
   lang: 'zh' | 'en';
   setLang: (lang: 'zh' | 'en') => void;
-  bgMode: 'default' | 'video';
-  onToggleBgMode: () => void;
+  bgMode: 'default' | 'themeA' | 'themeB';
+  onSetBgMode: (mode: 'default' | 'themeA' | 'themeB') => void;
   t: any;
 }
 
@@ -153,13 +153,13 @@ const FeatureCard: React.FC<FeatureCardProps> = memo(({
                     style={{
                       // Grayscale when not hovered, Color when hovered
                       filter: isHovered ? 'none' : 'grayscale(100%)',
-                      // Slight opacity dim when not hovered for mood
-                      opacity: isHovered ? 1 : 0.8
+                      // Transparency: 0.6 when idle (more transparent), 1.0 when hovered
+                      opacity: isHovered ? 1 : 0.6
                     }}
                  />
 
-                 {/* Dark gradient at bottom to ensure text readability */}
-                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80 z-20" />
+                 {/* Dark gradient at bottom to ensure text readability - lighter (opacity-60) per request */}
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 z-20" />
             </div>
             
             {/* Title */}
@@ -174,7 +174,7 @@ const FeatureCard: React.FC<FeatureCardProps> = memo(({
   );
 });
 
-export default function Landing({ onSelectModule, lang, setLang, bgMode, onToggleBgMode, t }: LandingProps) {
+export default function Landing({ onSelectModule, lang, setLang, bgMode, onSetBgMode, t }: LandingProps) {
   const [animData, setAnimData] = useState<{
     module: AppModule;
     rect: DOMRect;
@@ -183,6 +183,7 @@ export default function Landing({ onSelectModule, lang, setLang, bgMode, onToggl
   const [isExpanding, setIsExpanding] = useState(false);
   const [deckScale, setDeckScale] = useState(1);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
 
   // Card Deck State
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -367,23 +368,63 @@ export default function Landing({ onSelectModule, lang, setLang, bgMode, onToggl
         </div>
         
         <div className="relative z-50 flex items-center gap-4">
-          {/* Theme Toggle Button */}
-          <button 
-            onClick={onToggleBgMode}
-            className={`flex items-center justify-center p-2 rounded-full border transition-all duration-300 ${
-               bgMode === 'video' 
-               ? 'bg-purple-500/20 border-purple-500 text-purple-200 shadow-[0_0_10px_rgba(168,85,247,0.3)]' 
-               : 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10 hover:text-white'
-            }`}
-            title="Toggle Theme"
-          >
-             <Palette size={16} />
-          </button>
+          {/* Theme Dropdown */}
+          <div className="relative">
+            <button 
+                onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
+                className={`flex items-center gap-2 text-sm font-medium transition-colors opacity-80 hover:opacity-100 select-none px-3 py-1.5 rounded-full border ${
+                    bgMode === 'themeB' 
+                      ? 'bg-white/20 border-white/50 text-white' // Stronger white for Theme B
+                      : bgMode === 'themeA'
+                        ? 'bg-purple-500/10 border-purple-500/30 text-purple-300'
+                        : 'bg-white/5 border-white/10 text-gray-300'
+                }`}
+            >
+                <Palette size={16} />
+                <span className="hidden md:inline">
+                   {bgMode === 'default' ? '默认' : bgMode === 'themeA' ? '主题 A' : '主题 B'}
+                </span>
+                <ChevronDown size={14} className={`transition-transform duration-200 ${isThemeMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isThemeMenuOpen && (
+                <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsThemeMenuOpen(false)} />
+                <div className="absolute top-full right-0 mt-2 w-32 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-100 p-1">
+                    <button
+                    onClick={() => { onSetBgMode('default'); setIsThemeMenuOpen(false); }}
+                    className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left rounded-lg transition-colors ${bgMode === 'default' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    >
+                    默认
+                    {bgMode === 'default' && <Check size={12} className="text-green-400" />}
+                    </button>
+                    <button
+                    onClick={() => { onSetBgMode('themeA'); setIsThemeMenuOpen(false); }}
+                    className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left rounded-lg transition-colors ${bgMode === 'themeA' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    >
+                    主题 A
+                    {bgMode === 'themeA' && <Check size={12} className="text-green-400" />}
+                    </button>
+                    <button
+                    onClick={() => { onSetBgMode('themeB'); setIsThemeMenuOpen(false); }}
+                    className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left rounded-lg transition-colors ${bgMode === 'themeB' ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+                    >
+                    主题 B
+                    {bgMode === 'themeB' && <Check size={12} className="text-green-400" />}
+                    </button>
+                </div>
+                </>
+            )}
+          </div>
 
           <div className="relative">
             <button 
                 onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
-                className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white cursor-pointer transition-colors opacity-80 hover:opacity-100 select-none bg-white/5 border border-white/10 px-3 py-1.5 rounded-full"
+                className={`flex items-center gap-2 text-sm font-medium cursor-pointer transition-colors opacity-80 hover:opacity-100 select-none px-3 py-1.5 rounded-full border ${
+                    bgMode === 'themeB'
+                        ? 'bg-white/20 border-white/50 text-white' // Stronger white for Theme B
+                        : 'bg-white/5 border-white/10 text-gray-300 hover:text-white'
+                }`}
             >
                 <Globe size={16} />
                 <span>{t.navLang}</span>

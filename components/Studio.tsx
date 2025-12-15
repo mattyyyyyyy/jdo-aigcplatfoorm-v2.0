@@ -76,6 +76,7 @@ interface StudioProps {
   onChangeModule: (module: AppModule) => void;
   lang: 'zh' | 'en';
   setLang: (lang: 'zh' | 'en') => void;
+  bgMode: 'default' | 'themeA' | 'themeB';
   onBack: () => void;
   onOpenSettings: () => void;
   savedAssets: Asset[];
@@ -636,7 +637,7 @@ const TOOLBAR_ITEMS = [
   { icon: Sparkles, label: '占位P', id: 'ai' },
 ];
 
-export default function Studio({ module, onChangeModule, lang, setLang, onBack, onOpenSettings, savedAssets, onSaveAsset, t }: StudioProps) {
+export default function Studio({ module, onChangeModule, lang, setLang, bgMode, onBack, onOpenSettings, savedAssets, onSaveAsset, t }: StudioProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [isModuleMenuOpen, setIsModuleMenuOpen] = useState(false);
   const [voiceConfig, setVoiceConfig] = useState({
@@ -700,6 +701,12 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Determine theme state for styling
+  const isThemeActive = bgMode !== 'default';
+  // Helper for asset card image backgrounds to be less transparent when theme is active
+  // Updated: Increased opacity to bg-black/80 for image display areas
+  const cardImageBg = isThemeActive ? 'bg-black/80 group-hover:bg-black/70' : 'bg-white/5 group-hover:bg-white/10';
 
   const featureTitle = useMemo(() => {
     switch (module) {
@@ -1598,7 +1605,8 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
         <div className={`flex-1 flex flex-col min-w-0 transition-all duration-700 delay-300 ${isMounted ? 'opacity-100' : 'opacity-0'}`}>
             
             {/* Center Canvas */}
-            <div className="flex-1 relative bg-black/10 backdrop-blur-sm overflow-hidden flex items-center justify-center">
+            {/* Updated Logic: If Theme is active, use bg-black/80 for much darker opacity */}
+            <div className={`flex-1 relative ${isThemeActive ? 'bg-black/80 backdrop-blur-xl' : 'bg-black/10 backdrop-blur-sm'} overflow-hidden flex items-center justify-center transition-colors duration-500`}>
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
                 
                 {module === '3d-avatar' ? render3dCanvas() : render2dCanvas()}
@@ -2002,7 +2010,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                                     onClick={() => handleAssetClick(asset)}
                                     className={`aspect-[3/4] rounded-lg overflow-hidden cursor-pointer border flex flex-col bg-[#111] group hover:border-white/30 transition-all ${baseModel === asset.id ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'border-white/5'}`}
                                   >
-                                    <div className="flex-1 flex items-center justify-center bg-white/5 relative overflow-hidden group-hover:bg-white/10 transition-colors w-full">
+                                    <div className={`flex-1 flex items-center justify-center ${cardImageBg} relative overflow-hidden transition-colors w-full`}>
                                        {asset.src ? (
                                          <img src={asset.src} className="w-full h-full object-cover" />
                                        ) : (
@@ -2078,7 +2086,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                                    onClick={() => handleAssetClick(asset)}
                                    className={`aspect-square rounded-lg overflow-hidden cursor-pointer border flex flex-col bg-[#111] group hover:border-white/30 transition-all ${accessory === asset.id ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.4)]' : 'border-white/5'}`}
                                  >
-                                   <div className="flex-1 flex items-center justify-center bg-white/5 relative group-hover:bg-white/10 transition-colors">
+                                   <div className={`flex-1 flex items-center justify-center ${cardImageBg} relative transition-colors`}>
                                      {asset.name.includes('Mask') ? <Ghost size={20} style={{ color: asset.previewColor }} /> :
                                       asset.name.includes('Horn') ? <Moon size={20} style={{ color: asset.previewColor }} /> :
                                       asset.name.includes('Leaf') ? <Flower size={20} style={{ color: asset.previewColor }} /> :
@@ -2180,7 +2188,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, onBack, 
                               {/* Saved Snapshots */}
                               {savedAssets.filter(a => a.module === module && (!searchQuery || a.name.toLowerCase().includes(searchQuery.toLowerCase()))).map(asset => (
                                 <div key={asset.id} onClick={() => handleAssetClick(asset)} className="aspect-[3/4] rounded-lg overflow-hidden cursor-pointer border flex flex-col bg-[#111] group hover:border-white/30 transition-all border-white/5">
-                                   <div className="flex-1 flex items-center justify-center bg-white/5 relative">
+                                   <div className={`flex-1 flex items-center justify-center ${cardImageBg} relative transition-colors`}>
                                       {asset.type === 'snapshot' ? <Crown size={24} className="text-yellow-500" /> : <User size={24} className="text-white/50" />}
                                    </div>
                                    <div className="p-2 bg-[#151515] relative">
