@@ -201,7 +201,7 @@ export default function App() {
             loop
             muted
             playsInline
-            className="w-full h-full object-cover transition-opacity duration-1000"
+            className="w-full h-full object-cover object-top transition-opacity duration-1000"
           />
         )}
         {/* Dark overlay for text readability - Pure black base with transparency */}
