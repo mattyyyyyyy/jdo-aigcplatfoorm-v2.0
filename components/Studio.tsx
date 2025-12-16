@@ -1412,83 +1412,6 @@ export default function Studio({ module, onChangeModule, lang, setLang, bgMode, 
   );
 
   const buttonStyle = `
-    .fancy-button {
-      /* Theme Variables - Default (Yellow/Lime) */
-      --bg-1: #ddff00;
-      --bg-2: #b7ff00;
-      --shadow-color: rgba(187, 255, 0, 0.4);
-    
-      position: relative;
-      padding: 0; /* Handled by flex container */
-      font-size: 14px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: #1a1a1a;
-      background: linear-gradient(135deg, var(--bg-1), var(--bg-2));
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      overflow: hidden;
-      white-space: nowrap;
-      
-      /* Simplified Transition - No complex physics/perspective */
-      transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
-      
-      box-shadow: 0 4px 12px var(--shadow-color);
-      outline: none;
-      z-index: 1;
-    }
-
-    /* Green Variant (Voice Call) */
-    .fancy-button.green {
-      --bg-1: #4ade80; /* green-400 */
-      --bg-2: #22c55e; /* green-500 */
-      --shadow-color: rgba(34, 197, 94, 0.4);
-    }
-
-    /* Red Variant (End Call / Stop) */
-    .fancy-button.red {
-      --bg-1: #f87171; /* red-400 */
-      --bg-2: #ef4444; /* red-500 */
-      --shadow-color: rgba(239, 68, 68, 0.4);
-    }
-
-    /* Hover State - Simple Lift & Brightness */
-    .fancy-button:hover {
-      transform: translateY(-2px);
-      filter: brightness(1.1);
-      box-shadow: 0 8px 20px var(--shadow-color);
-    }
-
-    /* Active State - Press down */
-    .fancy-button:active {
-      transform: translateY(0) scale(0.98);
-      filter: brightness(0.95);
-      box-shadow: 0 2px 8px var(--shadow-color);
-    }
-    
-    .fancy-button:disabled {
-      background: linear-gradient(135deg, #555, #333);
-      color: #777;
-      cursor: not-allowed;
-      box-shadow: none;
-      transform: none;
-      filter: grayscale(1);
-    }
-
-    .fancy-button span {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      width: 100%;
-      height: 100%;
-    }
-
     @keyframes talking-glow {
       0% { box-shadow: 0 0 10px rgba(255,255,255,0.2), 0 0 20px rgba(255,255,255,0.1); }
       50% { box-shadow: 0 0 25px rgba(255,255,255,0.5), 0 0 50px rgba(255,255,255,0.3); }
@@ -1655,38 +1578,23 @@ export default function Studio({ module, onChangeModule, lang, setLang, bgMode, 
                 
                 {/* Toolbar */}
                 <div className="border-b border-white/5 flex items-center bg-[#181818] h-14 relative z-30 px-2 gap-2">
-                    
-                    {/* Start Conversation Button - Only for relevant modules */}
-                    {(module === '2d-chat' || module === '3d-avatar' || module === '2d-avatar') && (
-                      <div className="shrink-0 h-full flex items-center pr-2 border-r border-white/5">
-                         <button 
-                            onClick={() => setIsCallActive(!isCallActive)} 
-                            className={`fancy-button ${isCallActive ? 'red' : 'green'} w-[200px] h-10 flex items-center justify-center shadow-lg transition-all duration-300`}
-                        >
-                            <span className="text-sm font-bold flex items-center gap-2">
-                            {isCallActive ? <PhoneOff size={16} /> : <Phone size={16} />}
-                            {isCallActive ? t.studio.controls.endCall : t.studio.controls.voiceCall}
-                            </span>
-                        </button>
-                      </div>
-                    )}
 
                     <div ref={toolbarRef} className="flex-1 flex items-center gap-1 overflow-hidden h-full">
                         {visibleItems.map((item) => {
                             let displayLabel = item.label;
                             if (item.id === 'import') {
-                                if (module === '2d-audio') displayLabel = '参考视频';
+                                if (module === '2d-audio') displayLabel = '参考文件';
                                 else if (module === '3d-avatar') displayLabel = '导入模型';
                             }
                             return (
                                 <button
                                     key={item.id}
                                     onClick={() => handleToolbarClick(item.id)}
-                                    className="flex flex-col items-center justify-center min-w-[50px] h-full gap-0.5 px-2 py-1 hover:bg-white/5 transition-colors text-white/60 hover:text-white group rounded-md"
+                                    className="flex flex-col items-center justify-center min-w-[50px] h-full gap-0.5 px-2 py-1 hover:bg-white/5 transition-colors text-white group rounded-md"
                                     title={displayLabel}
                                 >
-                                    <item.icon size={18} className="text-blue-400/80 group-hover:text-blue-400 transition-colors" />
-                                    <span className="text-[10px] origin-center font-medium whitespace-nowrap">{displayLabel}</span>
+                                    <item.icon size={18} className="text-white transition-colors" />
+                                    <span className="text-[10px] origin-center font-medium whitespace-nowrap text-white/60 group-hover:text-white">{displayLabel}</span>
                                 </button>
                             );
                         })}
@@ -1708,24 +1616,39 @@ export default function Studio({ module, onChangeModule, lang, setLang, bgMode, 
                                     {overflowItems.map((item) => {
                                         let displayLabel = item.label;
                                         if (item.id === 'import') {
-                                            if (module === '2d-audio') displayLabel = '参考视频';
+                                            if (module === '2d-audio') displayLabel = '参考文件';
                                             else if (module === '3d-avatar') displayLabel = '导入模型';
                                         }
                                         return (
                                             <button
                                                 key={item.id}
                                                 onClick={() => { handleToolbarClick(item.id); setIsOverflowOpen(false); }}
-                                                className="flex flex-col items-center justify-center p-2 hover:bg-white/5 rounded-lg gap-1 transition-colors text-white/60 hover:text-white group"
+                                                className="flex flex-col items-center justify-center p-2 hover:bg-white/5 rounded-lg gap-1 transition-colors text-white group"
                                                 title={displayLabel}
                                             >
-                                                <item.icon size={16} className="text-blue-400/80 group-hover:text-blue-400 transition-colors" />
-                                                <span className="text-[9px] text-center font-medium truncate w-full">{displayLabel}</span>
+                                                <item.icon size={16} className="text-white transition-colors" />
+                                                <span className="text-[9px] text-center font-medium truncate w-full text-white/60 group-hover:text-white">{displayLabel}</span>
                                             </button>
                                         );
                                     })}
                                 </div>
                             )}
                         </div>
+                    )}
+
+                    {/* Start Conversation Button - Only for relevant modules */}
+                    {(module === '2d-chat' || module === '3d-avatar' || module === '2d-avatar') && (
+                      <div className="shrink-0 h-full flex items-center pl-2 border-l border-white/5">
+                         <button 
+                            onClick={() => setIsCallActive(!isCallActive)} 
+                            className={`h-9 w-[240px] flex items-center justify-center rounded-full border transition-all duration-300 group ${isCallActive ? 'border-red-500/50 text-red-400 bg-red-500/10 hover:bg-red-500/20' : 'border-green-500/50 text-green-400 bg-green-500/10 hover:bg-green-500/20 hover:shadow-[0_0_20px_rgba(74,222,128,0.2)]'}`}
+                        >
+                            <span className="text-sm font-medium flex items-center gap-2">
+                            {isCallActive ? <PhoneOff size={16} /> : <Phone size={16} />}
+                            {isCallActive ? t.studio.controls.endCall : t.studio.controls.voiceCall}
+                            </span>
+                        </button>
+                      </div>
                     )}
                 </div>
 
@@ -1735,7 +1658,7 @@ export default function Studio({ module, onChangeModule, lang, setLang, bgMode, 
                         <div className="flex justify-between items-center text-[10px] font-bold text-white/60 uppercase tracking-wider pb-1 border-b border-white/5">
                             <span>
                                 {module === '3d-avatar' ? '导入模型' : 
-                                 module === '2d-audio' ? '参考视频' : 
+                                 module === '2d-audio' ? '参考文件' : 
                                  '导入文件'}
                             </span>
                             <button onClick={() => setIsImportMenuOpen(false)} className="hover:text-white"><X size={14}/></button>
